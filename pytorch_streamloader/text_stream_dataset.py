@@ -12,11 +12,6 @@ from pytorch_streamloader.multistreamer import MultiStreamer
 from pytorch_streamloader.stream_dataset import StreamDataset
 
 
-TEXTS = [
-"".join([chr(j)+'_'+str(i)+";" for i in range(1000)])
-for j in range(97, 97+27)
-]
-
 
 class TextStream(object):
     def __init__(self, text, tbins):
@@ -92,7 +87,7 @@ def collate_fn(data):
 
 
 def make_text_dataset(
-    words=TEXTS,
+    words,
     num_iter=10,
     num_tbins=80,
     num_workers=1,
@@ -124,18 +119,5 @@ def make_text_dataset(
     return dataset
 
 
-def test_simple_case():
-    dataset = make_text_dataset()
-    
-    for batch in dataset:
-        print('========')
-        for i in range(len(batch)):
-            x = "".join([chr(item) for item in batch[i]])
-            print(x)
 
 
-
-if __name__ == "__main__":
-    import fire
-
-    fire.Fire(test_simple_case)
