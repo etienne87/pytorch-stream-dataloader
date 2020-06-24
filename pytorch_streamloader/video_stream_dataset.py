@@ -42,17 +42,17 @@ class VideoStreams(StreamDataset):
 
     def reset_streams(self):
         self.streams = []
-        self.file_iter = 0
+        self.stream_iter = 0
         random.shuffle(self.stream_files)
         print("reset: ", self.num_streams)
         for i in range(self.num_streams):
             assert len(self.stream_files) > 0
-            filename = self.stream_files[self.file_iter]
+            filename = self.stream_files[self.stream_iter]
             extension = os.path.splitext(filename)[1]
             if extension in [".jpg", ".png"] and not "%" in filename:
                 self.streams += [
                     CameraImageStream(
-                        self.filenames[self.file_iter],
+                        self.filenames[self.stream_iter],
                         self.height,
                         self.width,
                         max_frames=self.max_frames,
@@ -61,18 +61,18 @@ class VideoStreams(StreamDataset):
             else:
                 self.streams += [
                     self.video_backend(
-                        self.stream_files[self.file_iter],
+                        self.stream_files[self.stream_iter],
                         self.height,
                         self.width,
                         max_frames=self.max_frames,
                         random_start=self.random_start,
                     )
                 ]
-            self.file_iter = (self.file_iter + 1) % len(self.stream_files)
+            self.stream_iter = (self.stream_iter + 1) % len(self.stream_files)
 
     def reload_stream(self, idx):
-        self.streams[idx].reload(self.stream_files[self.file_iter])
-        self.file_iter = (self.file_iter + 1) % len(self.stream_files)
+        self.streams[idx].reload(self.stream_files[self.stream_iter])
+        self.stream_iter = (self.stream_iter + 1) % len(self.stream_files)
 
     def __call__(self, arrays_dic):
         batchsize, tbins = arrays_dic["data"].shape[:2]

@@ -23,7 +23,7 @@ class StreamDataset(object):
         self.num_tbins = num_tbins
         self.streams = []
         self.select_partition(stream_files)
-        self.file_iter = 0
+        self.stream_iter = 0
         self.iter = 0
         self.reset_streams()
 
