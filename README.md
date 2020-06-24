@@ -8,7 +8,7 @@ Current implementation of iterable dataset does not seem to cover well use-case 
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
 This is mainly to get feedback and understand how to do this better :-) (but if you find this useful don't hesitate to give me feedback as well)
 
-TODO: ADD FIGURES
+![](data/dataloader_figure.jpg)
 
 ## Text Example
 
@@ -20,8 +20,13 @@ TEXTS = [
 for j in range(97, 97+27)
 ]
 dataset = make_text_dataset(TEXTS)
+for j, batch in enumerate(dataset):
+    print('batch'+str(j)+': ')
+    for i in range(len(batch)):
+        x = "".join([chr(item) for item in batch[i]])
+        print(x)
 ```
-What do we do here? We provide to the MultiStreamer class a class that can stream several text strings defined in TEXTS and it will stream them coherently:
+This will show: 
 ```
 - batch1
 a_0;a_1;a_2;
@@ -44,16 +49,18 @@ g_3;g_4;g_5;
 h_3;h_4;h_5;
 
 - batch3
-a_3;a_4;a_5;
-b_3;b_4;b_5;
-c_3;c_4;c_5;
-d_3;d_4;d_5;
-e_3;e_4;e_5;
-f_3;f_4;f_5;
-g_3;g_4;g_5;
-h_3;h_4;h_5;
+a_6;a_7;a_8;
+b_6;b_7;b_8;
+c_6;c_7;c_8;
+d_6;d_7;d_8;
+e_6;e_7;e_8;
+f_6;f_7;f_8;
+g_6;g_7;g_8;
+h_6;h_7;h_8;
 ...
 ```
+You notice that every row is a coherent sequence (marked by the letter and timestep number for sake of example). 
+And that this continuity extends accross batches.
 
 How to make this streaming of text?
 ```
@@ -89,15 +96,15 @@ def make_text_dataset(
 
     return dataset
 ```
-Here we give the dataset generator (using partial) to the MultiStreamer, which is the main dataloader instanciating the threads (think of it as the Pytorch DataLoader). 
-Here Each worker_id has its own "TextStreams" class that delivers "micro-batches" (Batchsize, Tbins, 1) that are collated into the Multistreamer.
+Here we give the dataset generator to the MultiStreamer, which is the main dataloader instanciating the threads (think of it as the Pytorch DataLoader). 
+Here Each worker_id has its own "TextStreams" class that delivers "micro-batches" (Batchsize/num_workers, Tbins, 1) that are collated in the multistreamer for which you can also pass a collate function.
 
 ## Video Example:
 
 You can run the example/video_dataset.py on any folder containing .mp4! 
 This should show you a grid of several videos being read at the same time and delivered with "minimal" latency to pytorch GPU. (well that is the idea at least). This indicates a timing around 1 ms to deliver a batch (because the main process is showing the frames and takes time on its own).
 
-! ![](data/example_video.gif)
+![](data/example_video.gif)
 
 
 
