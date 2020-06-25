@@ -120,4 +120,36 @@ def make_text_dataset(
 
 
 
+if __name__ == '__main__':
+    import time
+    import requests
+    from bs4 import BeautifulSoup    
+    from GoogleNews import GoogleNews
+    googlenews = GoogleNews()
+    googlenews = GoogleNews(lang='en')
+    googlenews = GoogleNews(period='d')
+    googlenews = GoogleNews(start='02/01/2020',end='02/28/2020')
+    googlenews.setlang('en')
+    googlenews.setperiod('d')
+    googlenews.setTimeRange('02/01/2020','02/28/2020')
+    googlenews.search('APPL')
+    googlenews.getpage(2)
+    x = googlenews.result()
+    for item in x:
+        web_link = item['link']
+        
+        start = time.time()
+        page_source = requests.get(web_link)
+        soup = BeautifulSoup(page_source.text, "lxml")
+        print('s: ', time.time()-start)
+        try: 
+            text = soup.find('article').text
+            #print(text)
+        except:
+            continue
+
+
+    #text = googlenews.gettext()
+    #print(text[0])
+    # import pdb;pdb.set_trace()
 
