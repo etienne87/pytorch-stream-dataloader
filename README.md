@@ -4,9 +4,9 @@
 
 ## What is it?
 
-Current implementation of iterable dataset does not seem to cover well use-case of streaming several videos/ text/ audio in temporally coherent batches.
+With current implementation of iterable dataset I don't manage to stream several videos/ text/ audio in temporally coherent batches *with several workers*.
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
-This is mainly to get feedback and understand how to do this better :-) (but if you find this useful don't hesitate to give me feedback as well)
+This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.
 
 ![](data/dataloader_figure.jpg)
 
@@ -62,7 +62,7 @@ h_6;h_7;h_8;
 You notice that every row is a coherent sequence (marked by the letter and timestep number for sake of example). 
 And that this continuity extends accross batches.
 
-How to make this streaming of text?
+### How to make this streaming of text?
 ```
 def make_text_dataset(
     words,
@@ -83,7 +83,7 @@ def make_text_dataset(
     )
     dataset = MultiStreamer(
         make_env,
-        array_dims,
+        array_dims,  
         batchsize=batchsize,
         max_q_size=4,
         num_workers=num_workers,
@@ -97,7 +97,76 @@ def make_text_dataset(
     return dataset
 ```
 Here we give the dataset generator to the MultiStreamer, which is the main dataloader instanciating the threads (think of it as the Pytorch DataLoader). 
-Here Each worker_id has its own "TextStreams" class that delivers "micro-batches" (Batchsize/num_workers, Tbins, 1) that are collated in the multistreamer for which you can also pass a collate function.
+Here Each worker_id has its own "TextStreams" class that delivers "micro-batches" (Batchsize/num_workers, Tbins, 1) that are collated in the multistreamer for which you can also pass a custom collate function.
+
+### How to write your own 
+
+Here an example of the text streamer
+
+``` 
+class TextStreams(StreamDataset):
+    def __init__(
+        self,
+        stream_files=[],
+        worker_id=0,
+        num_workers=1,
+        num_streams=3,
+        num_batches=100,
+        num_tbins=1,
+        epoch=0,
+        **kwargs
+    ):
+        self.max_frames = 1000
+        self.epoch = epoch
+        self.stream_files = stream_files
+        super(TextStreams, self).__init__(
+            stream_files, worker_id, num_workers, num_streams, num_batches, num_tbins
+        )
+
+    def reset_streams(self):
+        self.streams = []
+        for i in range(self.num_streams):
+            self.streams.append(TextStream(self.stream_files[self.stream_iter], self.num_tbins))
+            self.stream_iter += 1
+
+    def reload_stream(self, idx):
+        self.streams[idx].reload(self.words[self.stream_iter])
+        self.stream_iter = (self.stream_iter + 1) % len(self.stream_files)
+
+    def __call__(self, arrays_dic):
+        batchsize, tbins = arrays_dic["data"].shape[:2]
+        assert len(self.streams) == batchsize
+        mask = np.zeros((batchsize), dtype='u8')
+        filenames = []
+        times = []
+        self.iter += 1
+        for i, stream in enumerate(self.streams):
+            filenames_i = []
+            times_i = []
+            frame = next(stream)
+            while frame is None:
+                self.reload_stream(i)
+                frame = next(self.streams[i])
+            mask[i] = self.streams[i].iter > 1
+            arrays_dic["data"][i, :len(frame)] = frame[:,None]
+        return {"resets": [mask]}
+``` 
+
+your dataset needs to instanciate in a mandatory for the multistreamer 1 function:
+
+``` 
+def __call__(self, arrays_dic):
+```
+and fill every item of this dictionary with items of shape compatible with the dictionary "array_dims" that you gave to Multistreamer.
+
+I provide an example of class that you can use to derive from: the StreamDataset which contains mandatory functions to re-implement.
+
+- reset_streams: build all streaming objects
+- reload_stream: load the next file for one of your streaming object which has run out of data to stream__
+- call: fill current dictionary of data.
+
+
+
 
 ## Video Example:
 
@@ -106,8 +175,23 @@ This should show you a grid of several videos being read at the same time and de
 
 ![](data/example_video.gif)
 
+## Virtual Camera in front of Planar Image Example:
+
+This example showcases that you can do completely procedural data streaming to your network (with data-parallelism).
+
+## Scrapping Articles from internet and streaming them
+
+COMING SOON
+
+
+## Runtimes
+
+COMING SOON
 
 
 
 ## Installation
-TODO :-) 
+
+COMING SOON
+
+
