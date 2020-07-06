@@ -38,13 +38,11 @@ class StreamDataset(object):
 
     def select_partition(self, stream_files):
         """default partitioning"""
-        print("num stream files: ", len(stream_files))
         num_workers = max(1, self.num_workers)
         num_files = len(stream_files) // num_workers
         start = self.worker_id * num_files
         end = (self.worker_id + 1) * num_files
         self.stream_files = stream_files[start:end]
-        print("num stream files selected: ", len(self.stream_files))
 
     def __call__(self, array_dict):
         raise Exception("Not Implemented")

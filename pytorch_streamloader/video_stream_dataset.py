@@ -44,7 +44,6 @@ class VideoStreams(StreamDataset):
         self.streams = []
         self.stream_iter = 0
         random.shuffle(self.stream_files)
-        print("reset: ", self.num_streams)
         for i in range(self.num_streams):
             assert len(self.stream_files) > 0
             filename = self.stream_files[self.stream_iter]
@@ -115,7 +114,6 @@ def make_video_dataset(
     all_filenames,
     niter=100,
     tbins=10,
-    utbins=1,
     num_workers=1,
     batchsize=8,
     max_frames=100,
@@ -133,7 +131,7 @@ def make_video_dataset(
         height=height,
         width=width,
         max_frames=max_frames,
-        num_tbins=utbins,
+        num_tbins=tbins,
         random_start=random_start,
         video_backend=streamer_func,
     )

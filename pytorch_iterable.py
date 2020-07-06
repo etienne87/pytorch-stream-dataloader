@@ -118,12 +118,14 @@ class MultiStreamDataLoader:
             self.join_memory_thread.start()
            
             while not self._join_memory_thread_done_event.is_set():
-                data = self._data_queue.get(timeout=100000)
-                yield data
+                batch = self._data_queue.get(timeout=100000)
+                batch = {'data':batch}
+                yield batch
             self.join_memory_thread.join()
         else:
             # Single-Process
             for batch_parts in self.get_stream_loaders():
                 data = list(chain(*batch_parts))
                 batch = torch.cat([item[:, None] for item in data], dim=1)
+                batch = {'data':batch}
                 yield batch

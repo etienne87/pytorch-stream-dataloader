@@ -74,3 +74,6 @@ class OpenCVStream(object):
             frame = cv2.resize(frame, (self.width, self.height), 0, 0, cv2.INTER_AREA)
             self.iter += 1
         return ret, frame
+
+    def __iter__(self):
+        return self
