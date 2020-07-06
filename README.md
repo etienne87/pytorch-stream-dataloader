@@ -4,9 +4,11 @@
 
 ## What is it?
 
-With current implementation of iterable dataset I don't manage to stream several videos/ text/ audio in temporally coherent batches *with several workers*.
+~With current implementation of iterable dataset I don't manage to stream several videos/ text/ audio in temporally coherent batches *with several workers*.
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
-This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.
+This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.~
+
+EDIT: i now manage to make the same thing with the pytorch iterable dataset, it is very easy in fact (look at pytorch_iterable.py)
 
 ![](data/dataloader_figure.jpg)
 
