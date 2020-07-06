@@ -42,7 +42,7 @@ class MyIterableDataset(IterableDataset):
             if len(out) == self.tbins:
                 y = np.concatenate(out)
                 out = []
-                yield y
+                yield y[:,None]
 
     def get_stream(self, data_list):
         tmp = map(self.process_data, iter(data_list))
