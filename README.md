@@ -8,7 +8,8 @@
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
 This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.~
 
-EDIT: i now manage to make the same thing with the pytorch iterable dataset, it is very easy in fact (look at pytorch_iterable.py)
+EDIT: i now manage to make the same thing with the pytorch iterable dataset, following https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd 
+It is a bit simpler like this (look at pytorch_iterable.py). The main requirement is to build several dataloaders with num_workers=1.
 
 ![](data/dataloader_figure.jpg)
 
