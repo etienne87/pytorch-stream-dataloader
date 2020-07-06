@@ -29,7 +29,7 @@ class MyIterableDataset(IterableDataset):
         return random.sample(self.data_list, len(self.data_list))
 
     def process_data(self, data):
-        stream = OpenCVStream(data, height=240, width=320, max_frames=-1)
+        stream = OpenCVStream(data, height=240, width=320, max_frames=1000)
         worker = torch.utils.data.get_worker_info()
         worker_id = worker.id if worker is not None else -1
 
@@ -45,11 +45,13 @@ class MyIterableDataset(IterableDataset):
                 yield y[:,None]
 
     def get_stream(self, data_list):
+        print('number of files to stream: ', len(data_list))
         tmp = map(self.process_data, iter(data_list))
         out = chain.from_iterable(tmp)
         return out
 
     def __iter__(self):
+        # here we should create equal partitions
         return zip(
             *[self.get_stream(self.shuffle_data_list) for _ in range(self.batch_size)]
         )
@@ -60,12 +62,17 @@ class MyIterableDataset(IterableDataset):
             if batch_size % n == 0:
                 num_workers = n
                 break
-        # Here is an example which utilises a single worker to build the entire batch.
+        #here we partition the original data_list.
         split_size = batch_size // num_workers
-        return [
-            cls(data_list, batch_size=split_size, tbins=tbins)
-            for _ in range(num_workers)
-        ]
+        num_files_per_worker = len(data_list) // num_workers
+        out = []
+        for i in range(num_workers):
+            start = i * num_files_per_worker
+            end = (i + 1) * num_files_per_worker
+            stream_files = data_list[start:end]
+            item = cls(stream_files, batch_size=split_size, tbins=tbins)
+            out.append(item)
+        return out
 
 
 class MultiStreamDataLoader:
@@ -129,3 +136,4 @@ class MultiStreamDataLoader:
                 batch = torch.cat([item[:, None] for item in data], dim=1)
                 batch = {'data':batch}
                 yield batch
+
