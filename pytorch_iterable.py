@@ -19,17 +19,18 @@ from pytorch_streamloader.video_streamer import OpenCVStream
 
 
 class MyIterableDataset(IterableDataset):
-    def __init__(self, data_list, batch_size=4, tbins=5):
+    def __init__(self, data_list, batch_size=4, tbins=5, max_frames_per_video=10):
         self.data_list = data_list
         self.batch_size = batch_size
         self.tbins = tbins
+        self.max_frames_per_video = max_frames_per_video
 
     @property
     def shuffle_data_list(self):
         return random.sample(self.data_list, len(self.data_list))
 
     def process_data(self, data):
-        stream = OpenCVStream(data, height=240, width=320, max_frames=1000)
+        stream = OpenCVStream(data, height=240, width=320, max_frames=self.max_frames_per_video)
         worker = torch.utils.data.get_worker_info()
         worker_id = worker.id if worker is not None else -1
 
@@ -52,9 +53,14 @@ class MyIterableDataset(IterableDataset):
 
     def __iter__(self):
         # here we should create equal partitions
+        chunk_size = len(self.data_list) // self.batch_size 
         return zip(
-            *[self.get_stream(self.shuffle_data_list) for _ in range(self.batch_size)]
+                *[self.get_stream(self.data_list[i*chunk_size:(i+1)*chunk_size]) for i in range(self.batch_size)]
         )
+
+        # return zip(
+        #     *[self.get_stream(self.shuffle_data_list) for _ in range(self.batch_size)]
+        # )
 
     @classmethod
     def split_datasets(cls, data_list, batch_size, tbins, max_workers):

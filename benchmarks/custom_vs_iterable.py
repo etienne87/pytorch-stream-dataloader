@@ -10,7 +10,7 @@ from pytorch_streamloader.utils import grab_images_and_videos, normalize
 from pytorch_streamloader.video_stream_dataset import make_video_dataset
 from pytorch_iterable import MyIterableDataset, MultiStreamDataLoader
 
-def time_iterator(dataloader, num_iter=100, main_thread_dt=0.1):
+def time_iterator(dataloader, num_iter=100, main_thread_dt=0.0):
     print(dataloader)
     timings = []
     start = time.time()
@@ -24,7 +24,7 @@ def time_iterator(dataloader, num_iter=100, main_thread_dt=0.1):
         if idx == 0:
             start = start2
     end = time.time()
-    print(timings[1:])
+    print(np.array(timings[1:]).mean())
     return end-start 
 
 video_dir = "/home/etienneperot/workspace/data/slow-motion/video01/"
