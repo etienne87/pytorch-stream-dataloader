@@ -57,7 +57,8 @@ class MyIterableDataset(IterableDataset):
         return zip(
                 *[self.get_stream(self.data_list[i*chunk_size:(i+1)*chunk_size]) for i in range(self.batch_size)]
         )
-
+        
+        # here it is just randomly sampled
         # return zip(
         #     *[self.get_stream(self.shuffle_data_list) for _ in range(self.batch_size)]
         # )
