@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+"""
+utils
+"""
 import os
 import glob
 import time
 import torch
 import numpy as np
-import ffmpeg
-import cv2
 
 
 def grab_images_and_videos(adir):
@@ -47,6 +44,7 @@ def grab_files(adir, extensions):
 def filter_outliers(input_val, num_std=3):
     val_range = num_std * input_val.std()
     img_min = input_val.mean() - val_range
+    A
     img_max = input_val.mean() + val_range
     if isinstance(input_val, torch.Tensor):
         normed = torch.min(torch.max(input_val, img_min), img_max)
