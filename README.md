@@ -8,9 +8,9 @@ With current implementation of iterable dataset I don't manage to stream several
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
 This is mainly to get feedback and understand how to do this better / simpler, but if you find this useful don't hesitate to give me feedback as well.
 
-EDIT 21-06-2020: i now manage to make the same thing with the pytorch iterable dataset, following https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
+### EDIT 21-06-2020: i now manage to make the same thing with the pytorch iterable dataset, following https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
 
-EDIT 21-06-2021: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id, this way I can actually concatenate data using FIFOs. For video reading however, perhaps the most efficient remains the VideoLoader from: https: // github.com/dmlc/decord
+### EDIT 21-06-2021: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id, this way I can actually concatenate data using FIFOs. For video reading however, perhaps the most efficient remains the VideoLoader from: https: // github.com/dmlc/decord
 The problem is that you cannot really change what is done inside, so you have to load labels / or doing extra work once you receive the data.
 
 With Pytorch Iterable Dataset that returns the worker's id, you can also avoid re-concatenating all the data & simply have different RNNs indexed by the worker's id. This way you do not even need the StreamDataLoader's logic, only the StreamDataset class (and write your own iterator).
@@ -44,22 +44,7 @@ for batch, worker_id in dataloader:
 
 A very simple example can be found in examples/demo_text.py together with examples/text_stream_dataset.py
 
-```
-TEXTS = [
-    "".join([chr(j)+'_'+str(i)+";" for i in range(1000)])
-    for j in range(97, 97+27)
-]
-dataset = make_text_dataset(TEXTS)
-for j, batch in enumerate(dataset):
-    print('batch'+str(j)+': ')
-    for i in range(len(batch)):
-        x = "".join([chr(item) for item in batch[i]])
-        print(x)
-```
-
-#  How to make continuous streaming of text?
-
-Here an example of the text stream
+Here an example of the text stream iterator:
 ```
 class TextStream(object):
     def __init__(self, text, tbins):
