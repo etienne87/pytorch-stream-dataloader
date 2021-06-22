@@ -34,6 +34,10 @@ for batch, worker_id in dataloader:
     y = the_good_rnn(batch)
     ...
 ```
+The difference with the StreamDataset is that it handles automatically zipping over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you can write yourself. Generally you would want to stream for rnn:
+- current batch of data
+- if the stream has just started (useful to reset the memory at this example)
+- some metadata for kpi computation...
 
 # Schematic to understand DataLoading for RNN:
 
