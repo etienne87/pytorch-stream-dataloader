@@ -14,18 +14,14 @@ class TextStream(object):
         self.iter = 0
         self.tbins = tbins
 
-    def __len__(self):
-        return 100
-
-    def __next__(self):
-        if self.iter >= len(self.text):
-            return None
-        frame = self.text[self.iter:self.iter+self.tbins]
-        self.iter += self.tbins
-        return torch.from_numpy(frame[None]), 0
-
     def __iter__(self):
-        return self
+        for i in range(0, len(self.text), self.tbins):
+            data = self.text[i:i+self.tbins]
+            #pad to tbins
+            frame = np.zeros((1, self.tbins), dtype=np.float32)
+            frame[0,:len(data)] = data
+            yield (torch.from_numpy(frame), 0)
+
 
 
 def collate_fn(data_list):

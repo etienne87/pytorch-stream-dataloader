@@ -89,6 +89,7 @@ class StreamDataset(IterableDataset):
             for i, it in enumerate(iterators):
                 try:
                     value = next(it)
+                    assert value is not None
                 except StopIteration:
                     file_pos += 1
                     actives[i] = 1 * (file_pos < len(stream_list))
