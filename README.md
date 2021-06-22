@@ -29,7 +29,7 @@ class MyMagnificoIterable(IterableDataset):
 ...
 ds = MyMagnificoIterable(files)  # make sure this yields the data AND the worker's id.
 
-dataloader = torch.utils.DataLoader(ds, batch_size=4, num_workers=whatever)
+dataloader = torch.utils.DataLoader(ds, batch_size=None, num_workers=whatever)
 for batch, worker_id in dataloader:
     the_good_rnn = my_rnns[worker_id]
     y = the_good_rnn(batch)
