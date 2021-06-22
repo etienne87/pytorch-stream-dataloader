@@ -4,12 +4,30 @@
 
 ## What is it?
 
-~With current implementation of iterable dataset I don't manage to stream several videos/ text/ audio in temporally coherent batches *with several workers*.
+With current implementation of iterable dataset I don't manage to stream several videos/ text/ audio in temporally coherent batches *with several workers*.
 Here i provide a simple implementation of streaming with multiprocessing and pytorch.
-This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.~
+This is mainly to get feedback and understand how to do this better/ simpler, but if you find this useful don't hesitate to give me feedback as well.
 
-EDIT: i now manage to make the same thing with the pytorch iterable dataset, following https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd 
-It is a bit simpler like this (look at pytorch_iterable.py). The main requirement is to build several dataloaders with num_workers=1.
+EDIT 21-06-2020: i now manage to make the same thing with the pytorch iterable dataset, following https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd 
+
+EDIT 21-06-2021: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id, this way I can actually concatenate data using FIFOs. For video reading however, perhaps the most efficient remains the VideoLoader from: https://github.com/dmlc/decord 
+The problem is that you cannot really change what is done inside, so you have to load labels/ or doing extra work once you receive the data.
+
+With Pytorch Iterable Dataset that returns the worker's id, you can also avoid re-concatenating all the data & simply have different RNNs indexed by the worker's id. This way you do not even need the StreamDataLoader's logic, only the StreamDataset class (and write your own iterator).
+
+Example:
+
+```
+ds = MyMagnificoIterable(files) #make sure this yields the data AND the worker's id.
+
+dataloader = torch.utils.DataLoader(ds, batch_size=4, num_workers=whatever)
+for batch, worker_id in dataloader:
+    the_good_rnn = my_rnns[worker_id]
+    y = the_good_rnn(batch)
+    ...
+```
+
+### Soon to be modified examples: 
 
 ![](data/dataloader_figure.jpg)
 
@@ -170,31 +188,9 @@ I provide an example of class that you can use to derive from: the StreamDataset
 
 
 
-
 ## Video Example:
 
 You can run the example/video_dataset.py on any folder containing .mp4! 
 This should show you a grid of several videos being read at the same time and delivered with "minimal" latency to pytorch GPU. (well that is the idea at least). This indicates a timing around 1 ms to deliver a batch (because the main process is showing the frames and takes time on its own).
 
 ![](data/example_video.gif)
-
-## Virtual Camera in front of Planar Image Example:
-
-This example showcases that you can do completely procedural data streaming to your network (with data-parallelism).
-
-## Scrapping Articles from internet and streaming them
-
-COMING SOON
-
-
-## Runtimes
-
-COMING SOON
-
-
-
-## Installation
-
-COMING SOON
-
-
