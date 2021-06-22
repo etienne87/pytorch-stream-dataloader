@@ -36,7 +36,7 @@ for batch, worker_id in dataloader:
     ...
 ```
 
-# Soon to be modified examples:
+# Schematic to understand DataLoading for RNN:
 
 ![](data/dataloader_figure.jpg)
 
@@ -55,44 +55,6 @@ for j, batch in enumerate(dataset):
     for i in range(len(batch)):
         x = "".join([chr(item) for item in batch[i]])
         print(x)
-```
-This will show:
-```
-- batch1
-a_0;a_1;a_2;
-b_0;b_1;b_2;
-c_0;c_1;c_2;
-d_0;d_1;d_2;
-e_0;e_1;e_2;
-f_0;f_1;f_2;
-g_0;g_1;g_2;
-h_0;h_1;h_2;
-
-- batch2
-a_3;a_4;a_5;
-b_3;b_4;b_5;
-c_3;c_4;c_5;
-d_3;d_4;d_5;
-e_3;e_4;e_5;
-f_3;f_4;f_5;
-g_3;g_4;g_5;
-h_3;h_4;h_5;
-
-- batch3
-a_6;a_7;a_8;
-b_6;b_7;b_8;
-c_6;c_7;c_8;
-d_6;d_7;d_8;
-e_6;e_7;e_8;
-f_6;f_7;f_8;
-g_6;g_7;g_8;
-h_6;h_7;h_8;
-...
-
-```
-You notice that every row is a coherent sequence(marked by the letter and timestep number for sake of example).
-And that this continuity extends accross batches.
-
 #  How to make continuous streaming of text?
 
 Here an example of the text stream
@@ -147,6 +109,45 @@ def make_text_dataset(
 
 ```
 Here we give the dataset to the StreamDataloader, which is a small wrapper around Pytorch's DataLoader. All it does is receive batches from the IterableDataset "StreamDataset" and worker ids and collate them as it receives them from the Pytorch's DataLoader.
+
+
+```
+This will show:
+```
+- batch1
+a_0;a_1;a_2;
+b_0;b_1;b_2;
+c_0;c_1;c_2;
+d_0;d_1;d_2;
+e_0;e_1;e_2;
+f_0;f_1;f_2;
+g_0;g_1;g_2;
+h_0;h_1;h_2;
+
+- batch2
+a_3;a_4;a_5;
+b_3;b_4;b_5;
+c_3;c_4;c_5;
+d_3;d_4;d_5;
+e_3;e_4;e_5;
+f_3;f_4;f_5;
+g_3;g_4;g_5;
+h_3;h_4;h_5;
+
+- batch3
+a_6;a_7;a_8;
+b_6;b_7;b_8;
+c_6;c_7;c_8;
+d_6;d_7;d_8;
+e_6;e_7;e_8;
+f_6;f_7;f_8;
+g_6;g_7;g_8;
+h_6;h_7;h_8;
+...
+
+```
+You notice that every row is a coherent sequence(marked by the letter and timestep number for sake of example).
+And that this continuity extends accross batches.
 
 
 # Video Example:
