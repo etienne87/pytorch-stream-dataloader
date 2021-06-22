@@ -15,8 +15,8 @@ setup(
     'video/text/audio'
   ],
   install_requires=[
-    'decord>=1.0',
-    'skvideo>=1.1.11',
+    'decord',
+    'scikit-video>=1.1.11',
     'torch>=1.6',
     'torchvision'
   ],
