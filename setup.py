@@ -1,30 +1,56 @@
 from setuptools import setup, find_packages
 
-setup(
-  name = 'pytorch-streamloader',
-  packages = find_packages(exclude=['legacy']),
-  version = '0.19.6',
-  license='MIT',
-  description = 'RNN DataLoader - Pytorch',
-  author = 'Etienne Perot',
-  author_email = 'et.perot@gmail.com',
-  url = 'https://github.com/etienne87/pytorch-streamloader',
-  keywords = [
-    'artificial intelligence',
-    'rnn data loading',
-    'video/text/audio'
-  ],
-  install_requires=[
+from pytorch_stream_dataloader import __version__
+
+
+extra_video=[
     'decord',
-    'scikit-video>=1.1.11',
-    'torch>=1.6',
-    'torchvision'
-  ],
-  classifiers=[
-    'Development Status :: 1 - Beta',
-    'Intended Audience :: Developers',
-    'Topic :: Scientific/Engineering :: Artificial Intelligence',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.6',
-  ],
+    'scikit-video>=1.1.11'
+]
+
+extra_test=[
+    'pytest>=4',
+    'pytest-cov>=2',
+]
+
+extra_dev=[
+    *extra_test,
+]
+
+extra_ci = [
+    *extra_test,
+    'python-coveralls',
+]
+
+
+setup(
+    name = 'pytorch-stream-dataloader',
+    packages = find_packages(exclude=['legacy']),
+    version = __version__,
+    license='MIT',
+    description = 'RNN DataLoader - Pytorch',
+    author = 'Etienne Perot',
+    author_email = 'et.perot@gmail.com',
+    url = 'https://github.com/etienne87/pytorch-streamloader',
+    keywords = [
+        'artificial intelligence',
+        'rnn data loading',
+        'video/text/audio'
+    ],
+    install_requires=[
+        'torch>=1.6',
+    ],
+    extras_require={
+        'video':extra_video,
+        'dev':extra_dev,
+        'test':extra_test,
+        'ci':extra_ci
+    },
+    classifiers=[
+        'Development Status :: 1 - Beta',
+        'Intended Audience :: Developers',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.6',
+    ],
 )
