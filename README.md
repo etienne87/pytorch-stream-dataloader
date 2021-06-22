@@ -42,7 +42,7 @@ for batch, worker_id in dataloader:
 
 # Text Example
 
-A very simple example can be found in examples/text_dataset.py together with pytorch_stream_loader/text_stream_dataset.py
+A very simple example can be found in examples/demo_text.py together with examples/text_stream_dataset.py
 
 ```
 TEXTS = [
@@ -55,10 +55,11 @@ for j, batch in enumerate(dataset):
     for i in range(len(batch)):
         x = "".join([chr(item) for item in batch[i]])
         print(x)
+```
+
 #  How to make continuous streaming of text?
 
 Here an example of the text stream
-
 ```
 class TextStream(object):
     def __init__(self, text, tbins):
@@ -105,14 +106,11 @@ def make_text_dataset(
     dataloader = StreamDataLoader(dataset, num_workers, my_collate_fn)
 
     return dataloader
-
-
 ```
+
 Here we give the dataset to the StreamDataloader, which is a small wrapper around Pytorch's DataLoader. All it does is receive batches from the IterableDataset "StreamDataset" and worker ids and collate them as it receives them from the Pytorch's DataLoader.
-
-
-```
 This will show:
+
 ```
 - batch1
 a_0;a_1;a_2;
