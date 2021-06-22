@@ -5,7 +5,8 @@ from pytorch_stream_dataloader import __version__
 
 extra_video=[
     'decord',
-    'scikit-video>=1.1.11'
+    'scikit-video>=1.1.11',
+    'torchvision>=0.9.0
 ]
 
 extra_test=[
