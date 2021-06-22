@@ -1,7 +1,6 @@
 # pytorch-stream-dataloader
 
-from a path, or a set of arguments that will be inside a list given to the StreamDataset.
-**The dataloader to stream videos or text or anything in temporally coherent batches.**
+**The dataloader to stream videos or text or anything in temporally coherent batches for RNNs/ networks with memory.**
 
 # What is it?
 

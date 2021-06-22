@@ -13,6 +13,8 @@ import decord
 import skvideo.io
 import itertools
 import time
+import os
+import pickle
 
 
 class DecordVideoStream(object):
@@ -35,9 +37,9 @@ class DecordVideoStream(object):
             end = min(len(self.reader)-1, i+self.num_tbins)
             if end-i <= 0:
                 raise StopIteration
-            frames = self.reader.get_batch([j for j in range(i,end)]).asnumpy()
-            frames = torch.from_numpy(frames) #t,h,w,c
-            frames = frames.permute(0,3,1,2) #t,c,h,w
+            frames = self.reader.get_batch([j for j in range(i, end)]).asnumpy()
+            frames = torch.from_numpy(frames)  # t,h,w,c
+            frames = frames.permute(0, 3, 1, 2)  # t,c,h,w
             yield frames, 0
 
 
@@ -66,7 +68,7 @@ class ScikitVideoStream(object):
         input_dict = {'-ss': str(start_ts)}
         output_dict = {}
         reader = skvideo.io.vreader(self.path, num_frames=self.end_frame-self.start_frame,
-                                            inputdict=input_dict, outputdict=output_dict)
+                                    inputdict=input_dict, outputdict=output_dict)
         return reader
 
     def __iter__(self):
@@ -75,19 +77,14 @@ class ScikitVideoStream(object):
         input_dict = {'-ss': str(start_ts)}
         output_dict = {}
         reader = skvideo.io.vreader(self.path, num_frames=self.end_frame-self.start_frame,
-                                            inputdict=input_dict, outputdict=output_dict)
+                                    inputdict=input_dict, outputdict=output_dict)
         for frames in grouper(reader, self.num_tbins):
             frames = [frame for frame in frames if frame is not None]
             frames = [frame[None] for frame in frames]
-            frames = np.concatenate(frames) #t,h,w,c
+            frames = np.concatenate(frames)  # t,h,w,c
             frames = torch.from_numpy(frames)
-            frames = frames.permute(0,3,1,2) #t,c,h,w
+            frames = frames.permute(0, 3, 1, 2)  # t,c,h,w
             yield frames, 0
-
-
-
-
-
 
 
 def pad_collate_fn(data_list):
@@ -98,13 +95,13 @@ def pad_collate_fn(data_list):
     max_len = max([item.shape[0] for item in images])
     b = len(images)
     _, c, h, w = images[0].shape
-    shape = (max_len,b,c,h,w)
+    shape = (max_len, b, c, h, w)
     out_images = torch.zeros(shape, dtype=images[0].dtype)
     for i in range(b):
         video = images[i]
         ilen = video.shape[0]
-        out_images[:ilen,i] = video
-        out_images[ilen:,i] = video[ilen-1]
+        out_images[:ilen, i] = video
+        out_images[ilen:, i] = video[ilen-1]
 
     return out_images
 
@@ -113,6 +110,7 @@ def cut_videos(files, max_frames):
     """
     cut files into multiple duration with start_time/ end_time
     """
+    print('this may take a while...')
     cuts = []
     for file_path in files:
         #ds = decord.VideoReader(file_path, ctx=decord.cpu(0))
@@ -122,16 +120,28 @@ def cut_videos(files, max_frames):
     return cuts
 
 
+def cut_videos_load_rewrite(path, max_frames):
+    """
+    handle caching
+    """
+    cut_list = 'cut_video.pkl'
+    do_write = True
+    if os.path.exists(cut_list):
+        files_pkl, max_frames_pkl = pickle.load(open(cut_list, 'rb'))
+        if max_frames_pkl == max_frames:
+            return files_pkl
+    files = grab_images_and_videos(path)
+    files = cut_videos(files, max_frames)
+    pickle.dump((files, max_frames), open(cut_list, 'wb'))
+    return files
+
+
 class VideoLoader(StreamDataLoader):
     def __init__(self, path, batch_size, num_workers, max_frames=500):
-        files = grab_images_and_videos(path)
-        start = time.time()
-        files = cut_videos(files, max_frames)
-        print(time.time()-start, ' s')
+        files = cut_videos_load_rewrite(path, max_frames)
+
         def iterator_fun(args):
             file_path, start_frame, end_frame = args
             return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
         dataset = StreamDataset(files, iterator_fun, batch_size, "data", None)
         super().__init__(dataset, num_workers, pad_collate_fn)
-
-
