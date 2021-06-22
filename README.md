@@ -1,4 +1,4 @@
-# pytorch-stream-dataloader
+# Pytorch-Stream-Dataloader
 
 **The dataloader to stream videos or text or anything in temporally coherent batches for RNNs/ networks with memory.**
 
