@@ -1,6 +1,9 @@
 # Pytorch-Stream-Dataloader
 
-**The dataloader to stream videos or text or anything in temporally coherent batches for RNNs/ networks with memory.**
+**A light wrapper dataloader to stream videos or text or anything in temporally coherent batches for recurrent networks.**
+
+![alt_text](https://cdn.futura-sciences.com/buildsv6/images/wide1920/0/e/2/0e209aae81_128445_fs-theatre-optique.jpg)
+
 
 # What is it?
 
