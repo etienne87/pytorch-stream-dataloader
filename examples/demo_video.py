@@ -4,7 +4,7 @@ demos
 import time
 import itertools
 import tqdm
-from stream_dataloader.video_stream_dataset import VideoLoader as TorchVideoLoader
+from examples.video_stream_dataset import VideoLoader as TorchVideoLoader
 
 
 def read_dataset(path, batch_size=4, num_workers=2, num_batches=100):
