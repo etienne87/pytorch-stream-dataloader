@@ -3,7 +3,9 @@ We stream text here
 """
 import numpy as np
 import torch
-from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader, StreamDataset
+from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
+from pytorch_stream_dataloader.stream_dataset import StreamDataset
+from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 
 
 class TextStream(object):

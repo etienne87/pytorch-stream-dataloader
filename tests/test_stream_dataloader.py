@@ -5,7 +5,9 @@ import os
 import platform
 import numpy as np
 
-from stream_dataloader import StreamDataset, StreamDataLoader, split_batch_size, split_dataset_sizes
+from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
+from pytorch_stream_dataloader.stream_dataset import StreamDataset
+from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from collections import defaultdict
 from functools import partial
 
@@ -74,7 +76,7 @@ class TestClassMultiStreams(object):
             v2 = streamed2[k]
             assert v1 == v2
 
-    def pytestcase_zero_pad_num_streams(self, tmpdir, dataset_dir):
+    def test_zero_pad_num_streams(self, tmpdir):
         # num_streams%batch_size != 0 (2 worker)
         num_workers, num_streams, batch_size, num_tbins = 2, 11, 4, 5
         num_workers = 0 if platform.system() == 'Windows' else num_workers
@@ -86,7 +88,7 @@ class TestClassMultiStreams(object):
         # THEN
         self.assert_all(dataloader, stream_list, num_tbins, batch_size)
 
-    def pytestcase_zero_pad_batch_size_greater_not_divisible(self, tmpdir, dataset_dir):
+    def test_zero_pad_batch_size_greater_not_divisible(self, tmpdir):
         # batch_size > num_streams_per_worker
         # batch_size%num_workers != 0
         num_workers, num_streams, batch_size, num_tbins = 3, 13, 7, 5
@@ -99,7 +101,7 @@ class TestClassMultiStreams(object):
         # THEN
         self.assert_all(dataloader, stream_list, num_tbins, batch_size)
 
-    def pytestcase_zero_pad_batch_size_not_enough_streams(self, tmpdir, dataset_dir):
+    def test_zero_pad_batch_size_not_enough_streams(self, tmpdir):
         # batch_size > num_streams_per_worker
         # batch_size%num_workers != 0
         num_workers, num_streams, batch_size, num_tbins = 3, 2, 7, 5
@@ -118,14 +120,14 @@ class TestClassMultiStreams(object):
 
         assert has_failed
 
-    def pytestcase_split_size(self):
+    def test_split_size(self):
         stream_list = [i for i in range(3)]
         split_sizes = split_batch_size(batch_size=3, num_workers=2)
         stream_groups = split_dataset_sizes(stream_list, split_sizes)
         for stream_group, split_size in zip(stream_groups, split_sizes):
             assert len(stream_group) >= split_size
 
-    def pytestcase_split_num_workers_greater_than_batch_size(self):
+    def test_split_num_workers_greater_than_batch_size(self):
         stream_list = [i for i in range(10)]
         split_sizes = split_batch_size(batch_size=3, num_workers=6)
         stream_groups = split_dataset_sizes(stream_list, split_sizes)
