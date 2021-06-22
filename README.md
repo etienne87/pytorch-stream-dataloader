@@ -1,17 +1,19 @@
-# pytorch-stream-dataloader
+# Pytorch-Stream-Dataloader
 
-**The dataloader to stream videos or text or anything in temporally coherent batches for RNNs/ networks with memory.**
+**A light wrapper dataloader to stream videos or text or anything in temporally coherent batches for recurrent networks.**
+
+![alt_text](https://cdn.futura-sciences.com/buildsv6/images/wide1920/0/e/2/0e209aae81_128445_fs-theatre-optique.jpg)
+
 
 # What is it?
 
-With current implementation of iterable dataset I don't manage to stream several videos / text / audio in temporally coherent batches * with several workers*.
-Here i provide a simple implementation of streaming with multiprocessing and pytorch.
+With current implementation of iterable dataset I don't manage to stream several videos / text / audio in temporally coherent batches **with several workers**.
+Here i provide a simple implementation of streaming by implementing a wrapper around Pytorch's IterableDataset.
 This is mainly to get feedback and understand how to do this better / simpler, but if you find this useful don't hesitate to give me feedback as well.
 
-## EDIT 21-06-2020: i now manage to make the same thing with the pytorch iterable dataset, following https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
+**EDIT 21-06-2020**: i now manage to make the same thing with the pytorch iterable dataset, following https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
 
-## EDIT 21-06-2021: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id, this way I can actually concatenate data using FIFOs. For video reading however, perhaps the most efficient remains the VideoLoader from: https: // github.com/dmlc/decord
-The problem is that you cannot really change what is done inside, so you have to load labels / or doing extra work once you receive the data.
+**EDIT 21-06-2021**: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id.
 
 With Pytorch Iterable Dataset that returns the worker's id, you can also avoid re-concatenating all the data & simply have different RNNs indexed by the worker's id. This way you do not even need the StreamDataLoader's logic, only the StreamDataset class (and write your own iterator).
 
@@ -35,6 +37,10 @@ for batch, worker_id in dataloader:
     y = the_good_rnn(batch)
     ...
 ```
+The difference with the StreamDataset is that it handles automatically zipping over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you can write yourself. Generally you would want to stream for rnn:
+- current batch of data
+- if the stream has just started (useful to reset the memory at this example)
+- some metadata for kpi computation...
 
 # Schematic to understand DataLoading for RNN:
 
