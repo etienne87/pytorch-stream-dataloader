@@ -18,6 +18,15 @@ With Pytorch Iterable Dataset that returns the worker's id, you can also avoid r
 Example:
 
 ```
+class MyMagnificoIterable(IterableDataset):
+    ...
+    def __iter__(self):
+        ...
+
+        worker = torch.utils.data.get_worker_info()
+        worker_id = int(worker.id) if worker is not None else 0
+        yield my_data, worker_id
+...
 ds = MyMagnificoIterable(files)  # make sure this yields the data AND the worker's id.
 
 dataloader = torch.utils.DataLoader(ds, batch_size=4, num_workers=whatever)
@@ -84,13 +93,11 @@ h_6;h_7;h_8;
 You notice that every row is a coherent sequence(marked by the letter and timestep number for sake of example).
 And that this continuity extends accross batches.
 
-#  How to make this streaming of text?
+#  How to make continuous streaming of text?
 
 Here an example of the text stream
 
 ```
-
-
 class TextStream(object):
     def __init__(self, text, tbins):
         self.text = np.fromstring(text, dtype=np.uint8)
@@ -109,15 +116,11 @@ class TextStream(object):
 
     def reload(self, text):
         self.text = text
-
-
 ```
 That's it! You just have to create your own iterator, that can be constructed
 Here is how you would give this class to the StreamDataset:
 
 ```
-
-
 def make_text_dataset(
     words,
     num_iter=10,
