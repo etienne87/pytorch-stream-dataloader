@@ -15,9 +15,8 @@ With current implementation of iterable dataset I don't manage to stream several
 Here i provide a simple implementation of unified batch of streams, by implementing a wrapper around Pytorch's IterableDataset.
 This is mainly to get feedback and understand how to do this better / simpler, but if you find this useful don't hesitate to give me feedback as well.
 
-**EDIT 21-06-2020**: i now manage to make the same thing with the pytorch iterable dataset, following https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
-
-**EDIT 21-06-2021**: i now use iterable a bit differently, i ask every IterableDataset to retrieve the worker's id.
+ 
+**EDIT 21-06-2021**: Compared to the strategy used by https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd, here i ask every IterableDataset to retrieve the worker's id, this way i can collate using a list of FIFOs indexed by worker id.
 
 With Pytorch Iterable Dataset that returns the worker's id, you can also avoid re-concatenating all the data & simply have different RNNs indexed by the worker's id. This way you do not even need the StreamDataLoader's logic, only the StreamDataset class (and write your own iterator).
 
