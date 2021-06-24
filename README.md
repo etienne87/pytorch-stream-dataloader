@@ -5,6 +5,10 @@
 ![alt_text](https://cdn.futura-sciences.com/buildsv6/images/wide1920/0/e/2/0e209aae81_128445_fs-theatre-optique.jpg)
 
 
+# Install
+
+```pip install pytorch-stream-dataloader==1.0```
+
 # What is it?
 
 With current implementation of iterable dataset I don't manage to stream several videos / text / audio in temporally coherent batches **with several workers**.
