@@ -6,12 +6,12 @@ from pytorch_stream_dataloader import __version__
 extra_video=[
     'decord',
     'scikit-video>=1.1.11',
-    'torchvision>=0.9.0
+    'torchvision>=0.9.0'
 ]
 
 extra_test=[
     'pytest>=4',
-    'pytest-cov>=2',
+    'pytest-cov>=2'
 ]
 
 extra_dev=[
@@ -48,7 +48,6 @@ setup(
         'ci':extra_ci
     },
     classifiers=[
-        'Development Status :: 1 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'License :: OSI Approved :: MIT License',
