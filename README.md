@@ -41,7 +41,13 @@ for batch, worker_id in dataloader:
     y = the_good_rnn(batch)
     ...
 ```
-The difference with the StreamDataset is that it handles automatically zipping over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. Generally you would want to stream for rnn:
+The difference with the StreamDataset is that it handles automatically streaming over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. StreamDataset replaces ChainDataset and also collates the data from several iterables. 
+
+When using the StreamDataset, depending on your batch size and the number of workers, the workload is automatically dispatched accross instances of this class, so you do not have to worry about data partitioning. All the streams are read **at least once**, you have the choice for batch "rows" that have no longer any data to read to either stream: 
+- data that you have read before
+- padding data that your trainer can recognize as dummy.
+
+Generally you would want to stream for rnn:
 - current batch of data
 - if the stream has just started (useful to reset the memory at this example)
 - some metadata for kpi computation...
