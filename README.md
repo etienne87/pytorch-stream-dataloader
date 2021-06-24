@@ -12,11 +12,20 @@
 # What is it?
 
 With current implementation of iterable dataset I don't manage to stream several videos / text / audio in temporally coherent batches **with several workers**. What happens with batch_size=X and num_workers=X is that you receive in any order the batches coming from various workers, **one after the other**. There is no automatic collation of the data to stream one unified batch.
-Here i provide a simple implementation of unified batch of streams, by implementing a wrapper around Pytorch's IterableDataset.
+Here i provide a simple implementation of unified batch of streams, by implementing a wrapper around Pytorch's IterableDataset called "StreamDataset". 
 This is mainly to get feedback and understand how to do this better / simpler, but if you find this useful don't hesitate to give me feedback as well.
 
- 
-**EDIT 21-06-2021**: Compared to the strategy used by https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd, here i ask every IterableDataset to retrieve the worker's id, this way i can collate using a list of FIFOs indexed by worker id.
+The difference between IterableDataset & the StreamDataset is that it handles automatically streaming over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. StreamDataset replaces ChainDataset and also collates the data from several iterables read together. In this setting a batch should always have the form
+- TimeSteps, BatchSize, ... (dimensions)
+
+
+When using the StreamDataset, depending on your batch size and the number of workers, the workload is automatically dispatched accross instances of this class, so you do not have to worry about data partitioning. All the streams are read **at least once**, you have the choice for batch "rows" that have no longer any data to read to either stream: 
+- data that you have read before
+- padding data that your trainer can recognize as dummy.
+
+
+
+**EDIT 21-06-2021**: Compared to the strategy used by https: // medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd where he creates one DataLoader per "StreamDataset", here i ask every StreamDataset to retrieve the worker's id, this way i can collate using a list of FIFOs indexed by worker id.
 
 With Pytorch Iterable Dataset that returns the worker's id, you can also avoid re-concatenating all the data & simply have different RNNs indexed by the worker's id. This way you do not even need the StreamDataLoader's logic, only the StreamDataset class (and write your own iterator).
 
@@ -40,20 +49,16 @@ for batch, worker_id in dataloader:
     y = the_good_rnn(batch)
     ...
 ```
-The difference with the StreamDataset is that it handles automatically streaming over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. StreamDataset replaces ChainDataset and also collates the data from several iterables. 
 
-When using the StreamDataset, depending on your batch size and the number of workers, the workload is automatically dispatched accross instances of this class, so you do not have to worry about data partitioning. All the streams are read **at least once**, you have the choice for batch "rows" that have no longer any data to read to either stream: 
-- data that you have read before
-- padding data that your trainer can recognize as dummy.
-
-Generally you would want to stream for rnn:
-- current batch of data
-- if the stream has just started (useful to reset the memory at this example)
-- some metadata for kpi computation...
 
 # Schematic to understand DataLoading for RNN:
 
 ![](data/dataloader_figure.jpg)
+
+Generally you would want to stream for rnn:
+- current batch of data
+- if the stream has just started (useful to reset the memory at this example)
+
 
 # Text Example
 
