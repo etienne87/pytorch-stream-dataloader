@@ -68,45 +68,30 @@ class TextStream(object):
         self.iter = 0
         self.tbins = tbins
 
-    def __len__(self):
-        return 100
-
-    def __next__(self):
-        if self.iter >= len(self.text):
-            return None
-        frame = self.text[self.iter:self.iter+self.tbins]
-        self.iter += self.tbins
-        return frame
-
-    def reload(self, text):
-        self.text = text
+    def __iter__(self):
+        for i in range(0, len(self.text), self.tbins):
+            data = self.text[i:i+self.tbins]
+            #pad to tbins
+            frame = np.zeros((1, self.tbins), dtype=np.float32)
+            frame[0,:len(data)] = data
+            yield (torch.from_numpy(frame), 0)
 ```
 That's it! You just have to create your own iterator, that can be constructed
 Here is how you would give this class to the StreamDataset:
 
 ```
-def make_text_dataset(
-    words,
-    num_iter=10,
-    num_tbins=80,
-    num_workers=1,
-    batchsize=8,
-    max_frames=100,
-    start_epoch=0,
-):
-    array_dims = (num_tbins, 1)
-    iter_fun = partial(
-        TextStreams,
-        stream_files=words,
-        num_batches=num_iter,
-        max_frames=max_frames,
-        num_tbins=num_tbins,
-    )
+def collate_fn(data_list):
+    texts, _ = zip(*data_list)
+    texts = torch.cat(texts)
+    return texts
 
-    dataset = StreamDataset(files, iterator_fun, batch_size, "data", None)
-    dataloader = StreamDataLoader(dataset, num_workers, my_collate_fn)
 
-    return dataloader
+class TextLoader(StreamDataLoader):
+    def __init__(self, texts, batch_size, num_workers, tbins=5):
+        def iterator_fun(text): #define a lambda to open ONE file
+            return TextStream(text, tbins)
+        dataset = StreamDataset(texts, iterator_fun, batch_size, "data", None) # collection of iterables
+        super().__init__(dataset, num_workers, collate_fn) # stream-dataloader wrapper
 ```
 
 Here we give the dataset to the StreamDataloader, which is a small wrapper around Pytorch's DataLoader. All it does is receive batches from the IterableDataset "StreamDataset" and worker ids and collate them as it receives them from the Pytorch's DataLoader.
