@@ -15,12 +15,13 @@ With current implementation of iterable dataset I don't manage to stream several
 Here i provide a simple implementation of unified batch of streams, by implementing a wrapper around Pytorch's IterableDataset called "StreamDataset". 
 This is mainly to get feedback and understand how to do this better / simpler, but if you find this useful don't hesitate to give me feedback as well.
 
-The difference between IterableDataset & the StreamDataset is that it handles automatically streaming over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. StreamDataset replaces ChainDataset and also collates the data from several iterables read together. In this setting a batch should always have the form
+The difference between IterableDataset & the StreamDataset is that it handles automatically streaming over several iterables simultaneously, so if you use it, you only have to write the iterator over one stream only. Think of it as "stream grouper" of iterables that you do not need to write yourself. StreamDataset replaces ChainDataset and also collates the data from several iterables read together. In this setting the final batch should always have the dimensions Time, BatchSize (in the order you want).
+e.g: 
 - TimeSteps, BatchSize, ... (dimensions)
 
 
-When using the StreamDataset, depending on your batch size and the number of workers, the workload is automatically dispatched accross instances of this class, so you do not have to worry about data partitioning. All the streams are read **at least once**, you have the choice for batch "rows" that have no longer any data to read to either stream: 
-- data that you have read before
+When using the StreamDataset, depending on your batch size and the number of workers, the workload is automatically dispatched accross instances of this class, so you do not have to worry about data partitioning. All the streams are read **at least once**, meaning you can pad the batches with either: 
+- data that you have read before (re-stream)
 - padding data that your trainer can recognize as dummy.
 
 
