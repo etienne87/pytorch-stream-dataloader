@@ -105,7 +105,8 @@ class StreamDataset(IterableDataset):
             stream = stream_list[pos]
             self.pos.value = (self.pos.value + 1)%len(stream_list)
             self.mutex.release()
-            print("worker#", worker_id, " position : ", pos)
+            # debug
+            # print("worker#", worker_id, " position : ", pos)
             item = iter(self.streamer(stream))
             return item
 
