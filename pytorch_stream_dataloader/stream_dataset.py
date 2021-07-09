@@ -88,22 +88,31 @@ class StreamDataset(IterableDataset):
         """
         Just-in-time mapping
         The scheduling is done as we iterate.
-        # Ideally the list could be probed & updated accross workers???
+
+        EDIT 9/7/2021: The position in the stream is shared accross workers
+        This allows us to avoid the non ideal pre-iteration splitting of the dataset
         """
         #iterators = [iter(self.streamer(stream_list[i])) for i in range(split_size)]
 
-        #Initialize Mutex
-        self.mutex.acquire()
-        self.pos[0] = 0
-        self.mutex.release()
+        if worker_id == 0:
+            self.mutex.acquire()
+            self.pos.value = 0
+            self.mutex.release()
+
+        def increment_pos():
+            self.mutex.acquire()
+            pos = self.pos.value
+            stream = stream_list[pos]
+            self.pos.value = (self.pos.value + 1)%len(stream_list)
+            self.mutex.release()
+            print("worker#", worker_id, " position : ", pos)
+            item = iter(self.streamer(stream))
+            return item
 
         iterators = []
         for i in range(split_size):
-            self.mutex.acquire()
-            self.pos[0]  = (self.pos[0]+1)%len(stream_list)
-            iterators.append(iter(self.streamer(stream_list[self.pos[0]])))
-            self.mutex.release()
-
+            stream = increment_pos()
+            iterators.append(stream)
 
         actives = [1 for i in range(len(iterators))]
         num_actives = sum(actives)
@@ -119,12 +128,7 @@ class StreamDataset(IterableDataset):
                     actives[i] = 1 * (file_pos < len(stream_list))
                     if self.padding_mode == 'data' or actives[i]:
                         num = file_pos % len(stream_list)
-                        #iterators[i] = iter(self.streamer(stream_list[num]))
-                        self.mutex.acquire()
-                        iterators[i] = iter(self.streamer(stream_list[self.pos[0]]))
-                        self.pos[0]  = (self.pos[0]+1)%len(stream_list)
-                        self.mutex.release()
-
+                        iterators[i] = increment_pos()
                         value = next(iterators[i])
                     elif self.padding_mode == 'zeros':
                         value = self.fill_value

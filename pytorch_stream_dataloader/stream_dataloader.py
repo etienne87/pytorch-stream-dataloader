@@ -41,7 +41,8 @@ class StreamDataLoader(object):
             batch_size=None,
             num_workers=num_workers,
             collate_fn=lambda x: x,
-            drop_last=False)
+            drop_last=False,
+            multiprocessing_context="fork")
         self.collate_fn = collate_fn
         self.num_workers = max(1, num_workers)
 
@@ -81,8 +82,7 @@ class MutexStreamDataLoader(StreamDataLoader):
     """
 
     def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode="data", padded_value=None):
-        self.manager = multiprocessing.Manager()
-        mutex = self.manager.Lock()
-        pos = self.manager.list([0])
+        mutex = multiprocessing.Lock()
+        pos = multiprocessing.Value('i', 0)
         dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padded_value, pos, mutex)
         super().__init__(dataset, num_workers, collate_fn)
