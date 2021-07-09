@@ -28,8 +28,7 @@ class StreamDataset(IterableDataset):
         padding_mode (str): "zeros" "data" or "none", see "get_zip" function
         fill_value (object): padding value
     """
-
-    def __init__(self, stream_list, streamer, batch_size, padding_mode, fill_value):
+    def __init__(self, stream_list, streamer, batch_size, padding_mode, fill_value, pos, mutex):
         self.stream_list = stream_list
         self.batch_size = batch_size
         self.streamer = streamer
@@ -38,6 +37,8 @@ class StreamDataset(IterableDataset):
         assert padding_mode in ['zeros', 'data']
         if padding_mode == 'zeros':
             assert fill_value is not None
+        self.pos = pos
+        self.mutex = mutex
 
     def shuffle(self):
         random.shuffle(self.stream_list)
@@ -71,7 +72,15 @@ class StreamDataset(IterableDataset):
 
         worker = torch.utils.data.get_worker_info()
         worker_id = int(worker.id) if worker is not None else 0
-        split_size, stream_list = self._worker_init_fn()
+        #split_size, stream_list = self._worker_init_fn()
+
+        stream_list = self.stream_list
+        num_workers = 1 if worker is None else worker.num_workers
+        split_sizes = split_batch_size(self.batch_size, num_workers)
+        worker = torch.utils.data.get_worker_info()
+        worker_id = int(worker.id) if worker is not None else 0
+        split_size = split_sizes[worker_id]
+
         if len(stream_list) < split_size:
             print('worker#', worker_id, ': Stopping... Number of streams < split_size')
             raise StopIteration
@@ -79,8 +88,23 @@ class StreamDataset(IterableDataset):
         """
         Just-in-time mapping
         The scheduling is done as we iterate.
+        # Ideally the list could be probed & updated accross workers???
         """
-        iterators = [iter(self.streamer(stream_list[i])) for i in range(split_size)]
+        #iterators = [iter(self.streamer(stream_list[i])) for i in range(split_size)]
+
+        #Initialize Mutex
+        self.mutex.acquire()
+        self.pos[0] = 0
+        self.mutex.release()
+
+        iterators = []
+        for i in range(split_size):
+            self.mutex.acquire()
+            self.pos[0]  = (self.pos[0]+1)%len(stream_list)
+            iterators.append(iter(self.streamer(stream_list[self.pos[0]])))
+            self.mutex.release()
+
+
         actives = [1 for i in range(len(iterators))]
         num_actives = sum(actives)
         file_pos = split_size-1
@@ -95,7 +119,12 @@ class StreamDataset(IterableDataset):
                     actives[i] = 1 * (file_pos < len(stream_list))
                     if self.padding_mode == 'data' or actives[i]:
                         num = file_pos % len(stream_list)
-                        iterators[i] = iter(self.streamer(stream_list[num]))
+                        #iterators[i] = iter(self.streamer(stream_list[num]))
+                        self.mutex.acquire()
+                        iterators[i] = iter(self.streamer(stream_list[self.pos[0]]))
+                        self.pos[0]  = (self.pos[0]+1)%len(stream_list)
+                        self.mutex.release()
+
                         value = next(iterators[i])
                     elif self.padding_mode == 'zeros':
                         value = self.fill_value

@@ -13,13 +13,13 @@ import random
 import time
 import torch
 import numpy as np
+import multiprocessing
 
 from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from itertools import chain, cycle
 from collections import deque
 from torch.utils.data import IterableDataset, DataLoader
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
-
 
 
 class StreamDataLoader(object):
@@ -71,3 +71,18 @@ class StreamDataLoader(object):
                 batch = chain.from_iterable(values)
                 yield self.collate_fn(batch)
                 num_actives = sum([len(deq) for deq in cache])
+
+
+class MutexStreamDataLoader(StreamDataLoader):
+    """
+    MutexStreamDataLoader
+    adds a mutex and manages the list with a unique iteration of the stream list
+    over workers
+    """
+
+    def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode="data", padded_value=None):
+        self.manager = multiprocessing.Manager()
+        mutex = self.manager.Lock()
+        pos = self.manager.list([0])
+        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padded_value, pos, mutex)
+        super().__init__(dataset, num_workers, collate_fn)
