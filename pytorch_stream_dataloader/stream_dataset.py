@@ -51,17 +51,6 @@ class StreamDataset(IterableDataset):
         np.random.seed(seed)
         random.seed(seed)
 
-    def _worker_init_fn(self):
-        worker = torch.utils.data.get_worker_info()
-        worker_id = int(worker.id) if worker is not None else 0
-        num_workers = 1 if worker is None else worker.num_workers
-        split_sizes = split_batch_size(self.batch_size, num_workers)
-        stream_groups = split_dataset_sizes(self.stream_list, split_sizes)
-        split_size = split_sizes[worker_id]
-        stream_group = stream_groups[worker_id]
-        random.shuffle(stream_group)
-        return split_size, stream_group
-
     def __iter__(self):
         """Iterates over stream files
 
@@ -70,11 +59,14 @@ class StreamDataset(IterableDataset):
         """
         self._set_seed()
 
+        #initialization
         worker = torch.utils.data.get_worker_info()
         worker_id = int(worker.id) if worker is not None else 0
-        #split_size, stream_list = self._worker_init_fn()
-
         stream_list = self.stream_list
+
+        if worker_id == 0:
+            random.shuffle(stream_list)
+
         num_workers = 1 if worker is None else worker.num_workers
         split_sizes = split_batch_size(self.batch_size, num_workers)
         worker = torch.utils.data.get_worker_info()
@@ -92,9 +84,7 @@ class StreamDataset(IterableDataset):
         EDIT 9/7/2021: The position in the stream is shared accross workers
         This allows us to avoid the non ideal pre-iteration splitting of the dataset
         """
-        #iterators = [iter(self.streamer(stream_list[i])) for i in range(split_size)]
-
-        if worker_id == 0:
+        def init_pos():
             self.mutex.acquire()
             self.pos.value = 0
             self.mutex.release()
@@ -102,22 +92,25 @@ class StreamDataset(IterableDataset):
         def increment_pos():
             self.mutex.acquire()
             pos = self.pos.value
-            stream = stream_list[pos]
-            self.pos.value = (self.pos.value + 1)%len(stream_list)
+            stream = stream_list[pos%len(stream_list)]
+            new_pos = pos + 1
+            self.pos.value = new_pos
             self.mutex.release()
             # debug
             # print("worker#", worker_id, " position : ", pos)
-            item = iter(self.streamer(stream))
-            return item
+            return stream
+
+        if worker_id == 0:
+            init_pos()
 
         iterators = []
         for i in range(split_size):
             stream = increment_pos()
+            stream = iter(self.streamer(stream))
             iterators.append(stream)
 
         actives = [1 for i in range(len(iterators))]
         num_actives = sum(actives)
-        file_pos = split_size-1
         while num_actives:
             values = []
             for i, it in enumerate(iterators):
@@ -125,11 +118,11 @@ class StreamDataset(IterableDataset):
                     value = next(it)
                     assert value is not None
                 except StopIteration:
-                    file_pos += 1
-                    actives[i] = 1 * (file_pos < len(stream_list))
+                    stream = increment_pos()
+                    actives[i] = 1 * (self.pos.value < len(stream_list))
                     if self.padding_mode == 'data' or actives[i]:
-                        num = file_pos % len(stream_list)
-                        iterators[i] = increment_pos()
+                        assert stream is not None, self.pos.value
+                        iterators[i] = iter(self.streamer(stream))
                         value = next(iterators[i])
                     elif self.padding_mode == 'zeros':
                         value = self.fill_value

@@ -22,17 +22,26 @@ from torch.utils.data import IterableDataset, DataLoader
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 
 
+
+
 class StreamDataLoader(object):
     """StreamDataLoader
+
     Wraps around the DataLoader to handle the asynchronous batches.
+    We now handle one single list of streams read from multiple workers with a mutex.
 
     Args:
-        dataset (StreamDataset): dataset streaming multiple iterables
+        iterator_fun (lambda): function to create one stream
+        batch_size (int): number of streams read at the same time
         num_workers (int): number of workers
         collate_fn (function): function to collate batch parts
+        padding_mode (str): "data" or "zeros", what to do when all streams have been read but you still but one thread of streaming needs to output something
+        padded_value (object): object or None
     """
-
-    def __init__(self, dataset, num_workers, collate_fn):
+    def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode="data", padded_value=None):
+        mutex = multiprocessing.Lock()
+        pos = multiprocessing.Value('i', 0)
+        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padded_value, pos, mutex)
         self.dataset = dataset
         num_workers = min(dataset.batch_size, num_workers)
         assert isinstance(dataset, StreamDataset)
@@ -74,15 +83,3 @@ class StreamDataLoader(object):
                 num_actives = sum([len(deq) for deq in cache])
 
 
-class MutexStreamDataLoader(StreamDataLoader):
-    """
-    MutexStreamDataLoader
-    adds a mutex and manages the list with a unique iteration of the stream list
-    over workers
-    """
-
-    def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode="data", padded_value=None):
-        mutex = multiprocessing.Lock()
-        pos = multiprocessing.Value('i', 0)
-        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padded_value, pos, mutex)
-        super().__init__(dataset, num_workers, collate_fn)

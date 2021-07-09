@@ -7,7 +7,7 @@ Notes: it seems the fastest is to use decord with num_workers=0!
 import numpy as np
 import torch
 
-from pytorch_stream_dataloader.stream_dataloader import MutexStreamDataLoader
+from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
 from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from examples.files import grab_images_and_videos
@@ -139,7 +139,7 @@ def cut_videos_load_rewrite(path, max_frames):
     return files
 
 
-class VideoLoader(MutexStreamDataLoader):
+class VideoLoader(StreamDataLoader):
     def __init__(self, path, batch_size, num_workers, max_frames=500):
         files = cut_videos_load_rewrite(path, max_frames)
 
@@ -149,17 +149,3 @@ class VideoLoader(MutexStreamDataLoader):
         super().__init__(files, iterator_fun, batch_size, num_workers, pad_collate_fn)
 
 
-# class VideoLoader(StreamDataLoader):
-#     def __init__(self, path, batch_size, num_workers, max_frames=500):
-#         files = cut_videos_load_rewrite(path, max_frames)
-# 
-#         def iterator_fun(args):
-#             file_path, start_frame, end_frame = args
-#             return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
-# 
-#         self.manager = multiprocessing.Manager()
-#         self.mutex = self.manager.Lock()
-#         files = manager.list(files)
-# 
-#         dataset = StreamDataset(files, iterator_fun, batch_size, "data", None, self.mutex)
-#         super().__init__(dataset, num_workers, pad_collate_fn)
