@@ -18,3 +18,6 @@ dist/
 # Testing
 .pytest_cache/
 .coverage
+
+# Vim
+.swp
