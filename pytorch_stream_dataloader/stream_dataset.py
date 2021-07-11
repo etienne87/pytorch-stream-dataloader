@@ -99,7 +99,7 @@ class StreamDataset(IterableDataset):
         iterators = []
         for i in range(split_size):
             stream = increment_pos()
-            stream = self.streamer(stream)
+            stream = iter(self.streamer(stream))
             iterators.append(stream)
 
         actives = [1 for i in range(len(iterators))]
