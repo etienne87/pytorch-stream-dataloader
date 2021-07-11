@@ -28,7 +28,7 @@ class JoinDataThread(object):
     def __iter__(self):
         data_queue = queue.Queue()
         join_memory_thread = threading.Thread(
-            target=self.join_thread,
+            target=self.join_data_thread,
             args=(
                 data_queue,
                 torch.cuda.current_device(),
