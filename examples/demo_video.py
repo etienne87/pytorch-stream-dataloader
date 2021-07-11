@@ -18,14 +18,17 @@ def make_grid_base(batch):
     return make_grid(batch, nrows=nrows).detach().cpu().permute(1, 2, 0).numpy()
 
 
-def read_dataset(path, batch_size=4, num_workers=2, num_batches=100):
+def read_dataset(path, batch_size=4, num_workers=2, num_batches=400, viz=True):
     dataloader = TorchVideoLoader(path, batch_size, num_workers)
     start = time.time()
     for batch in tqdm.tqdm(itertools.islice(dataloader, num_batches), total=num_batches):
-        for t in range(len(batch)):
-            img = make_grid_base(batch[t])
-            cv2.imshow('img', img[..., ::-1])
-            cv2.waitKey(5)
+        if viz:
+            for t in range(len(batch)):
+                img = make_grid_base(batch[t])
+                cv2.imshow('img', img[..., ::-1])
+                cv2.waitKey(5)
+        else:
+            time.sleep(0.1)
     end = time.time()
     print('duration: ', end-start)
 

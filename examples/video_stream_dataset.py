@@ -140,13 +140,19 @@ def cut_videos_load_rewrite(path, max_frames):
 
 
 class VideoLoader(StreamDataLoader):
-    def __init__(self, path, batch_size, num_workers, max_frames=500):
+    def __init__(self, path, batch_size, num_workers, max_frames=500, backend='scikit'):
         files = cut_videos_load_rewrite(path, max_frames)
         #files = files[:batch_size*2]
 
         def iterator_fun(args):
             file_path, start_frame, end_frame = args
-            return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+            if backend == 'scikit':
+                return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+            elif backend == 'decord':
+                return DecordVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+            else:
+                raise Exception("backend is not supported")
+
         #padded_value = (torch.zeros((1,1,3,240,360)),0)
         padded_value = None
         super().__init__(files, iterator_fun, batch_size, num_workers, pad_collate_fn, "data", padded_value)
