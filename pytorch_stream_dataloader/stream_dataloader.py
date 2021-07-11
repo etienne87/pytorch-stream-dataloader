@@ -9,7 +9,6 @@ https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch
 We just return the torch worker's id every batch, and create a fifo per worker on the main
 thread side.
 """
-import random
 import time
 import torch
 import numpy as np
@@ -22,6 +21,7 @@ from torch.utils.data import IterableDataset, DataLoader
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 
 
+import random
 
 
 class StreamDataLoader(object):
@@ -38,10 +38,10 @@ class StreamDataLoader(object):
         padding_mode (str): "data" or "zeros", what to do when all streams have been read but you still but one thread of streaming needs to output something
         padded_value (object): object or None
     """
-    def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode="data", padded_value=None):
+    def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode, padding_value=None):
         mutex = multiprocessing.Lock()
         pos = multiprocessing.Value('i', 0)
-        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padded_value, pos, mutex)
+        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padding_value, pos, mutex)
         self.dataset = dataset
         num_workers = min(dataset.batch_size, num_workers)
         assert isinstance(dataset, StreamDataset)
@@ -50,12 +50,14 @@ class StreamDataLoader(object):
             batch_size=None,
             num_workers=num_workers,
             collate_fn=lambda x: x,
-            drop_last=False,
-            multiprocessing_context="fork")
+            drop_last=False)
         self.collate_fn = collate_fn
         self.num_workers = max(1, num_workers)
 
     def __iter__(self):
+        self.dataloader.dataset.shuffle()
+        self.dataloader.dataset.init_position()
+
         cache = [deque([]) for i in range(self.num_workers)]
         for data in self.dataloader:
             data, worker_id = data
@@ -74,7 +76,7 @@ class StreamDataLoader(object):
                 values = []
                 for i, deq in enumerate(cache):
                     if not len(deq):
-                        value = [self.dataset.fill_value] * split_sizes[i]
+                        value = [self.dataset.padding_value] * split_sizes[i]
                     else:
                         value = deq.popleft()
                     values.append(value)

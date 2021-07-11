@@ -34,6 +34,6 @@ class TextLoader(StreamDataLoader):
     def __init__(self, texts, batch_size, num_workers, tbins=5):
         def iterator_fun(text):
             return TextStream(text, tbins)
-        super().__init__(texts, iterator_fun, batch_size, num_workers, collate_fn)
+        super().__init__(texts, iterator_fun, batch_size, num_workers, collate_fn, "data")
 
 

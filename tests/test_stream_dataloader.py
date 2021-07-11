@@ -19,6 +19,9 @@ class DummyStream(object):
         self.max_len = stream[1]
         self.num_tbins = num_tbins
 
+    def __len__(self):
+        return self.max_len
+
     def __iter__(self):
         return self
 
@@ -31,6 +34,8 @@ class DummyStream(object):
         return positions, self.stream_num
 
 
+
+
 def collate_fn(data_list):
     frame_nums, stream_nums = zip(*data_list)
     return {"frame_num": frame_nums, "stream_num": stream_nums}
@@ -39,9 +44,8 @@ def collate_fn(data_list):
 class TestClassMultiStreams(object):
     def setup_dataloader(self, stream_list, num_workers, batch_size, num_tbins):
         iterator_fun = partial(DummyStream, num_tbins=num_tbins)
-        fill_value = ([-1] * num_tbins, -1)
-        dataset = StreamDataset(stream_list, iterator_fun, batch_size, "zeros", fill_value)
-        dataloader = StreamDataLoader(dataset, num_workers, collate_fn)
+        padding_value = ([-1] * num_tbins, -1)
+        dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size, num_workers, collate_fn, "zeros", padding_value)
         return dataloader
 
     def assert_all(self, dataloader, stream_list, num_tbins, batch_size):
@@ -71,10 +75,14 @@ class TestClassMultiStreams(object):
         for k, v in batch_number.items():
             assert len(set(v)) == 1
 
+        stream_dict = {k:v for k,v in stream_list}
+
         # THEN: ALL IS READ
         for k, v1 in streamed1.items():
             v2 = streamed2[k]
-            assert v1 == v2
+            if v1 != v2:
+                print('stream_id: ', k, ' tbins: ', stream_dict[k], 'v1: ', v1, 'v2: ', v2)
+            assert v1 == v2, " "+str(k)
 
     def test_zero_pad_num_streams(self, tmpdir):
         # num_streams%batch_size != 0 (2 worker)
@@ -86,7 +94,8 @@ class TestClassMultiStreams(object):
         dataloader = self.setup_dataloader(stream_list, num_workers, batch_size, num_tbins)
 
         # THEN
-        self.assert_all(dataloader, stream_list, num_tbins, batch_size)
+        for i in range(3):
+            self.assert_all(dataloader, stream_list, num_tbins, batch_size)
 
     def test_zero_pad_batch_size_greater_not_divisible(self, tmpdir):
         # batch_size > num_streams_per_worker
