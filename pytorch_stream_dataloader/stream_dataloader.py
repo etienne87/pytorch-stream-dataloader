@@ -41,7 +41,8 @@ class StreamDataLoader(object):
     def __init__(self, files, iterator_fun, batch_size, num_workers, collate_fn, padding_mode, padding_value=None):
         mutex = multiprocessing.Lock()
         pos = multiprocessing.Value('i', 0)
-        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padding_value, pos, mutex)
+        num_actives = multiprocessing.Value('i', 0)
+        dataset = StreamDataset(files, iterator_fun, batch_size, padding_mode, padding_value, pos, num_actives, mutex)
         self.dataset = dataset
         num_workers = min(dataset.batch_size, num_workers)
         assert isinstance(dataset, StreamDataset)
@@ -68,20 +69,13 @@ class StreamDataLoader(object):
                 batch = chain.from_iterable(iter(batch))
                 batch = self.collate_fn(batch)
                 yield batch
+
         # Empty remaining cache
-        if self.dataset.padding_mode == 'zeros':
-            split_sizes = split_batch_size(self.dataset.batch_size, self.num_workers)
-            num_actives = self.num_workers
-            while num_actives > 0:
-                values = []
-                for i, deq in enumerate(cache):
-                    if not len(deq):
-                        value = [self.dataset.padding_value] * split_sizes[i]
-                    else:
-                        value = deq.popleft()
-                    values.append(value)
-                batch = chain.from_iterable(values)
-                yield self.collate_fn(batch)
-                num_actives = sum([len(deq) for deq in cache])
-
-
+        # Assert no value is a true value
+        for fifo in cache:
+            if not len(cache):
+                continue
+            while len(fifo):
+                item = fifo.pop()[0]
+                if item != self.dataset.padding_value:
+                    assert 0, 'code is broken, cache contained real data'

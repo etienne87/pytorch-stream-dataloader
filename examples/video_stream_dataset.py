@@ -127,7 +127,7 @@ def cut_videos_load_rewrite(path, max_frames):
     """
     handle caching
     """
-    cut_list = 'cut_video.pkl'
+    cut_list = os.path.join(path, 'cut_video.pkl')
     do_write = True
     if os.path.exists(cut_list):
         files_pkl, max_frames_pkl = pickle.load(open(cut_list, 'rb'))
@@ -142,7 +142,6 @@ def cut_videos_load_rewrite(path, max_frames):
 class VideoLoader(StreamDataLoader):
     def __init__(self, path, batch_size, num_workers, max_frames=500, backend='scikit'):
         files = cut_videos_load_rewrite(path, max_frames)
-        #files = files[:batch_size*2]
 
         def iterator_fun(args):
             file_path, start_frame, end_frame = args
@@ -153,8 +152,5 @@ class VideoLoader(StreamDataLoader):
             else:
                 raise Exception("backend is not supported")
 
-        #padded_value = (torch.zeros((1,1,3,240,360)),0)
         padded_value = None
         super().__init__(files, iterator_fun, batch_size, num_workers, pad_collate_fn, "data", padded_value)
-
-

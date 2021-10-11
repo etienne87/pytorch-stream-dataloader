@@ -14,6 +14,7 @@ import numpy as np
 
 from torch.utils.data import IterableDataset, DataLoader
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
+from pytorch_stream_dataloader.join_data_thread import JoinDataThread
 
 
 
@@ -28,7 +29,7 @@ class StreamDataset(IterableDataset):
         padding_mode (str): "zeros" "data" or "none", see "get_zip" function
         padding_value (object): padding value
     """
-    def __init__(self, stream_list, streamer, batch_size, padding_mode, padding_value, pos, mutex):
+    def __init__(self, stream_list, streamer, batch_size, padding_mode, padding_value, pos, num_actives, mutex):
         self.stream_list = stream_list
         self.batch_size = batch_size
         self.streamer = streamer
@@ -39,6 +40,7 @@ class StreamDataset(IterableDataset):
             assert padding_value is not None
         self.pos = pos
         self.mutex = mutex
+        self.num_actives = num_actives
 
     def shuffle(self):
         random.shuffle(self.stream_list)
@@ -54,6 +56,7 @@ class StreamDataset(IterableDataset):
     def init_position(self):
         self.mutex.acquire()
         self.pos.value = 0
+        self.num_actives.value = 0
         self.mutex.release()
 
     def __iter__(self):
@@ -103,14 +106,22 @@ class StreamDataset(IterableDataset):
             iterators.append(stream)
 
         actives = [1 for i in range(len(iterators))]
-        num_actives = sum(actives)
-        while num_actives:
+        _num_actives = sum(actives)
+        self.mutex.acquire()
+        self.num_actives.value += _num_actives
+        self.mutex.release()
+
+        while self.num_actives.value:
             values = []
             for i, it in enumerate(iterators):
                 try:
                     value = next(it)
                     assert value is not None
                 except StopIteration:
+                    if actives[i] and (self.pos.value >= len(self.stream_list)):
+                        self.mutex.acquire()
+                        self.num_actives.value -= 1
+                        self.mutex.release()
                     actives[i] = 1 * (self.pos.value < len(self.stream_list))
                     if self.padding_mode == 'data' or actives[i]:
                         assert stream is not None, self.pos.value
@@ -122,5 +133,4 @@ class StreamDataset(IterableDataset):
 
                 values.append(value)
             yield tuple(values), worker_id
-            num_actives = sum(actives)
 
