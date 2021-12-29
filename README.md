@@ -147,3 +147,5 @@ You can run the example/video_dataset.py on any folder containing .mp4!
 This should show you a grid of several videos being read at the same time and delivered with "minimal" latency to pytorch GPU. (well that is the idea at least). This indicates a timing around 1 ms to deliver a batch(because the main process is showing the frames and takes time on its own).
 
 ![](data/example_video.gif)
+
+That's all folks
