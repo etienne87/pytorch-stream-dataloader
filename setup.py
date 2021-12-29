@@ -39,6 +39,7 @@ setup(
         'video/text/audio'
     ],
     install_requires=[
+        'numpy',
         'torch>=1.6',
     ],
     extras_require={
