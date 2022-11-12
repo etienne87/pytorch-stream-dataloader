@@ -21,8 +21,6 @@ from torch.utils.data import IterableDataset, DataLoader
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 
 
-import random
-
 
 class StreamDataLoader(object):
     """StreamDataLoader
@@ -67,6 +65,11 @@ class StreamDataLoader(object):
             if num == self.num_workers:
                 batch = [item.popleft() for item in cache]
                 batch = chain.from_iterable(iter(batch))
+                # Check if batch is all padding_value, do not yield
+                batch = [item for item in batch]
+                all_pad = all([item == self.dataset.padding_value for item in batch])
+                if all_pad:
+                    continue
                 batch = self.collate_fn(batch)
                 yield batch
 

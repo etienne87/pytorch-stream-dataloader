@@ -172,8 +172,8 @@ class TestClassMultiStreams(object):
                 num_workers, collate_fn, 'zeros', padding_value)
 
         # THEN
-        for batch in dataloader:
-            print(batch)
-            print('\n')
+        for i, batch in enumerate(dataloader):
+            continue
+        assert i == 0
 
 
