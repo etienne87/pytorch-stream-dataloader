@@ -114,23 +114,26 @@ class StreamDataset(IterableDataset):
         while self.num_actives.value:
             values = []
             for i, it in enumerate(iterators):
-                try:
-                    value = next(it)
-                    assert value is not None
-                except StopIteration:
-                    if actives[i] and (self.pos.value >= len(self.stream_list)):
-                        self.mutex.acquire()
-                        self.num_actives.value -= 1
-                        self.mutex.release()
-                    actives[i] = 1 * (self.pos.value < len(self.stream_list))
-                    if self.padding_mode == 'data' or actives[i]:
-                        assert stream is not None, self.pos.value
-                        stream = increment_pos()
-                        iterators[i] = iter(self.streamer(stream))
-                        value = next(iterators[i])
-                    elif self.padding_mode == 'zeros':
-                        value = self.padding_value
-
+                done = False
+                while not done:
+                    try:
+                        if actives[i]:
+                            value = next(it)
+                            assert value is not None
+                        elif self.padding_mode == 'zeros':
+                            value = self.padding_value
+                        done = True
+                    except StopIteration:
+                        if actives[i] and (self.pos.value >= len(self.stream_list)):
+                            self.mutex.acquire()
+                            self.num_actives.value -= 1
+                            self.mutex.release()
+                        actives[i] = 1 * (self.pos.value < len(self.stream_list))
+                        if self.padding_mode == 'data' or actives[i]:
+                            assert stream is not None, self.pos.value
+                            stream = increment_pos()
+                            iterators[i] = iter(self.streamer(stream))
+                            it = iterators[i]
                 values.append(value)
             yield tuple(values), worker_id
 

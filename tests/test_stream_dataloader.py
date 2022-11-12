@@ -10,6 +10,8 @@ from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from collections import defaultdict
 
+np.random.seed(0)
+
 
 class DummyStream(object):
     def __init__(self, stream_num, num_tbins, data=None, max_len=None):
@@ -151,11 +153,13 @@ class TestClassMultiStreams(object):
         for stream_group, split_size in zip(stream_groups, split_sizes):
             assert len(stream_group) >= split_size
 
-    def depr_contains_empty_streams(self):
+    def test_contains_empty_streams(self):
         # GIVEN
-        num_workers, num_streams, batch_size, num_tbins = 3, 13, 7, 5
-        stream_list = [(i, num_tbins * np.random.randint(0, 4)) for i in range(num_streams)]
-        dl = self.setup_dataloader(stream_list, 2, 4, num_tbins)
+        num_workers, num_streams, batch_size, num_tbins = 2, 13, 7, 5
+        stream_list = [(i, num_tbins * np.random.randint(1, 4)) for i in range(num_streams)]
+        for i in [1,4,7]:
+            stream_list[i]= (i, 0)
+        dl = self.setup_dataloader(stream_list, num_workers, batch_size, num_tbins)
         # THEN
         for i in range(3):
             self.assert_all(dl, stream_list, num_tbins, batch_size)
