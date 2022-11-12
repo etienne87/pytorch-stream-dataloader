@@ -9,15 +9,19 @@ from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
 from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from collections import defaultdict
-from functools import partial
 
 
 class DummyStream(object):
-    def __init__(self, stream, num_tbins):
+    def __init__(self, stream_num, num_tbins, data=None, max_len=None):
         self.pos = 0
-        self.stream_num = stream[0]
-        self.max_len = stream[1]
+        self.stream_num = stream_num 
         self.num_tbins = num_tbins
+        if data == None:
+            self.max_len = max_len 
+            self.data = [i for i in range(self.max_len)]
+        else:
+            self.data = data
+            self.max_len = len(data)
 
     def __len__(self):
         return self.max_len
@@ -29,9 +33,9 @@ class DummyStream(object):
         if self.pos >= self.max_len:
             raise StopIteration
         max_pos = min(self.pos + self.num_tbins, self.max_len)
-        positions = [i for i in range(self.pos, max_pos)]
+        data = self.data[self.pos:max_pos]
         self.pos = max_pos
-        return positions, self.stream_num
+        return data, self.stream_num
 
 
 
@@ -42,18 +46,22 @@ def collate_fn(data_list):
 
 
 class TestClassMultiStreams(object):
-    def setup_dataloader(self, stream_list, num_workers, batch_size, num_tbins):
-        iterator_fun = partial(DummyStream, num_tbins=num_tbins)
+    def setup_dataloader(self, stream_list, num_workers, batch_size, num_tbins,
+            padding='zeros'):
+        def iterator_fun(tmp):
+            stream_num, max_len = tmp
+            return DummyStream(stream_num, num_tbins, max_len=max_len)
         padding_value = ([-1] * num_tbins, -1)
-        dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size, num_workers, collate_fn, "zeros", padding_value)
+        dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size,
+                num_workers, collate_fn, padding, padding_value)
         return dataloader
 
     def assert_all(self, dataloader, stream_list, num_tbins, batch_size):
         # WHEN
         streamed1 = defaultdict(list)
         for stream_num, stream_len in stream_list:
-            stream_tuple = (stream_num, stream_len)
-            stream = DummyStream(stream_tuple, num_tbins)
+            stream = DummyStream(stream_num=stream_num, num_tbins=num_tbins,
+                    max_len=stream_len)
             for pos, _ in stream:
                 streamed1[stream_num] += [pos]
 
@@ -142,3 +150,30 @@ class TestClassMultiStreams(object):
         stream_groups = split_dataset_sizes(stream_list, split_sizes)
         for stream_group, split_size in zip(stream_groups, split_sizes):
             assert len(stream_group) >= split_size
+
+    def depr_contains_empty_streams(self):
+        # GIVEN
+        num_workers, num_streams, batch_size, num_tbins = 3, 13, 7, 5
+        stream_list = [(i, num_tbins * np.random.randint(0, 4)) for i in range(num_streams)]
+        dl = self.setup_dataloader(stream_list, 2, 4, num_tbins)
+        # THEN
+        for i in range(3):
+            self.assert_all(dl, stream_list, num_tbins, batch_size)
+
+    def test_single_stream_single_batch_size(self):
+        # GIVEN
+        num_workers, num_streams, batch_size, num_tbins = 1, 1, 1, 3
+        stream_list = [(0,[1,2,3])]
+        def iterator_fun(tmp):
+            stream_num, data = tmp
+            return DummyStream(stream_num, num_tbins, data=data)
+        padding_value = ([0] * num_tbins, -1)
+        dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size,
+                num_workers, collate_fn, 'zeros', padding_value)
+
+        # THEN
+        for batch in dataloader:
+            print(batch)
+            print('\n')
+
+
