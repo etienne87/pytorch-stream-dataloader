@@ -110,7 +110,7 @@ class TestClassMultiStreams(object):
 
     def test_zero_pad_num_streams(self, tmpdir):
         # num_streams%batch_size != 0 (2 worker)
-        num_workers, num_streams, batch_size, num_tbins = 2, 11, 4, 5
+        num_workers, num_streams, batch_size, num_tbins = 2, 10, 4, 3
         num_workers = 0 if platform.system() == 'Windows' else num_workers
 
         # GIVEN
