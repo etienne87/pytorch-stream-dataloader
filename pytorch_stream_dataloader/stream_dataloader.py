@@ -75,13 +75,10 @@ class StreamDataLoader(object):
 
         # Empty remaining cache
         # Assert no value is a true value
-        print('cache: ', cache)
-        """
         for fifo in cache:
-            if not len(cache):
+            if not len(fifo):
                 continue
             while len(fifo):
                 item = fifo.pop()[0]
                 if item != self.dataset.padding_value:
                     assert 0, 'code is broken, cache contained real data'
-        """

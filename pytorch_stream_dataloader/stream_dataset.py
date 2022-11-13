@@ -104,10 +104,8 @@ class StreamDataset(IterableDataset):
         while self.num_actives.value:
             values = []
             for i, it in enumerate(iterators):
-                value = self.get_value_v0(iterators, i, actives)
+                value = self.get_value(iterators, i, actives)
                 values.append(value)
-            print('worker id: ', worker_id, ' => num values: ', len(values),
-            '/', len(iterators))
             yield tuple(values), worker_id
 
     def get_value_v0(self, iterators, i, actives):
@@ -116,22 +114,20 @@ class StreamDataset(IterableDataset):
             value = next(iterators[i])
             assert value is not None
         except StopIteration:
+            self.mutex.acquire()
             if actives[i] and (self.pos.value >= len(self.stream_list)):
-                self.mutex.acquire()
                 self.num_actives.value -= 1
-                self.mutex.release()
             actives[i] = 1 * (self.pos.value < len(self.stream_list))
-            if self.padding_mode == 'data' or actives[i]:
-                assert stream is not None, self.pos.value
+            self.mutex.release()
+            if self.padding_mode == 'zeros' and not actives[i]:
+                value = self.padding_value
+            else:
                 stream = self.increment_pos()
                 iterators[i] = iter(self.streamer(stream))
                 value = next(iterators[i])
-            else:
-                value = self.padding_value
         return value
 
     def get_value(self, iterators, i, actives):
-        stream = iterators[i]
         done = False
         while not done:
             try:
@@ -142,14 +138,14 @@ class StreamDataset(IterableDataset):
                     value = self.padding_value
                 done = True
             except StopIteration:
+                self.mutex.acquire()
                 if actives[i] and (self.pos.value >= len(self.stream_list)):
-                    self.mutex.acquire()
                     self.num_actives.value -= 1
-                    self.mutex.release()
                 actives[i] = 1 * (self.pos.value < len(self.stream_list))
+                self.mutex.release()
+                stream = self.increment_pos()
                 if self.padding_mode == 'data' or actives[i]:
                     assert stream is not None, self.pos.value
-                    stream = self.increment_pos()
                     iterators[i] = iter(self.streamer(stream))
         return value
 
@@ -160,6 +156,6 @@ class StreamDataset(IterableDataset):
         new_pos = pos + 1
         self.pos.value = new_pos
         self.mutex.release()
-        return stream
+        return stream 
 
 

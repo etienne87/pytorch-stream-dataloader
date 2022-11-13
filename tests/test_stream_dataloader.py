@@ -5,8 +5,14 @@ import os
 import platform
 import numpy as np
 
+TEST = 1
+
 from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
-from pytorch_stream_dataloader.stream_dataset import StreamDataset
+
+if TEST:
+    from pytorch_stream_dataloader.stream_dataset_v0 import StreamDataset
+else:
+    from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from collections import defaultdict
 
@@ -29,6 +35,8 @@ class DummyStream(object):
         return self.max_len
 
     def __iter__(self):
+        # self.pos = 0 # this is not super important as we call ctor
+        # everytime...
         return self
 
     def __next__(self):
@@ -81,9 +89,11 @@ class TestClassMultiStreams(object):
                 streamed2[stream_num] += [batch['frame_num'][i]]
                 batch_number[stream_num].append(i)
 
-        print(sorted(streamed1.keys()), sorted(streamed2.keys()))
+        # print(sorted(streamed1.keys()), sorted(streamed2.keys()))
         # THEN: data is contiguous accross batches
         for k, v in batch_number.items():
+            if len(set(v)) > 1:
+                breakpoint()
             assert len(set(v)) == 1
 
         stream_dict = {k:v for k,v in stream_list}
@@ -92,6 +102,7 @@ class TestClassMultiStreams(object):
         for k, v1 in streamed1.items():
             v2 = streamed2[k]
             if v1 != v2:
+                breakpoint()
                 print('stream_id: ', k, ' tbins: ', stream_dict[k], 'v1: ', v1, 'v2: ', v2)
             assert v1 == v2, " "+str(k)
 
