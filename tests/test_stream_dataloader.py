@@ -35,12 +35,12 @@ class DummyStream(object):
         return self.max_len
 
     def __iter__(self):
-        # self.pos = 0 # this is not super important as we call ctor
-        # everytime...
+        #print(f'Streaming from #{self.stream_num}')
         return self
 
     def __next__(self):
         if self.pos >= self.max_len:
+            # print(f'{self.stream_num} {self.pos}/{self.max_len} StopIter')
             raise StopIteration
         max_pos = min(self.pos + self.num_tbins, self.max_len)
         data = self.data[self.pos:max_pos]
@@ -77,7 +77,8 @@ class TestClassMultiStreams(object):
 
         streamed2 = defaultdict(list)
         batch_number = defaultdict(list)
-        for batch in dataloader:
+        batch_iter = defaultdict(list)
+        for j,batch in enumerate(dataloader):
             actual_batch_size = len(batch['stream_num'])
             # THEN: batch_size should always be equal to user defined batch_size
             assert batch_size == actual_batch_size
@@ -88,6 +89,7 @@ class TestClassMultiStreams(object):
                     continue
                 streamed2[stream_num] += [batch['frame_num'][i]]
                 batch_number[stream_num].append(i)
+                batch_iter[stream_num].append(j)
 
         # print(sorted(streamed1.keys()), sorted(streamed2.keys()))
         # THEN: data is contiguous accross batches
@@ -173,11 +175,9 @@ class TestClassMultiStreams(object):
         for i in [1,4,7]:
             stream_list[i]= (i, 0)
 
-        print('stream list: ', stream_list)
         dl = self.setup_dataloader(stream_list, num_workers, batch_size, num_tbins)
         # THEN
-        for i in range(3):
-            self.assert_all(dl, stream_list, num_tbins, batch_size)
+        self.assert_all(dl, stream_list, num_tbins, batch_size)
 
     def test_single_stream_single_batch_size(self):
         # GIVEN
