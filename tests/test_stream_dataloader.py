@@ -81,6 +81,7 @@ class TestClassMultiStreams(object):
                 streamed2[stream_num] += [batch['frame_num'][i]]
                 batch_number[stream_num].append(i)
 
+        print(sorted(streamed1.keys()), sorted(streamed2.keys()))
         # THEN: data is contiguous accross batches
         for k, v in batch_number.items():
             assert len(set(v)) == 1
@@ -154,11 +155,14 @@ class TestClassMultiStreams(object):
             assert len(stream_group) >= split_size
 
     def test_contains_empty_streams(self):
+        np.random.seed(0)
         # GIVEN
         num_workers, num_streams, batch_size, num_tbins = 2, 13, 7, 5
         stream_list = [(i, num_tbins * np.random.randint(1, 4)) for i in range(num_streams)]
         for i in [1,4,7]:
             stream_list[i]= (i, 0)
+
+        print('stream list: ', stream_list)
         dl = self.setup_dataloader(stream_list, num_workers, batch_size, num_tbins)
         # THEN
         for i in range(3):

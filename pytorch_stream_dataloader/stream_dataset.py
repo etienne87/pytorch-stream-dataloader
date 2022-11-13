@@ -7,7 +7,6 @@ When fed to a Pytorch DataLoader with batch_size=None,
 this streams batches from one worker at a time.
 This has the effect of enabling parallel streaming.
 """
-import random
 import time
 import torch
 import numpy as np
@@ -43,15 +42,15 @@ class StreamDataset(IterableDataset):
         self.num_actives = num_actives
 
     def shuffle(self):
-        random.shuffle(self.stream_list)
+        np.random.shuffle(self.stream_list)
 
-    def _set_seed(self):
+    def _set_seed(self, seed=None):
         """ so that data is different along threads and epochs"""
         worker = torch.utils.data.get_worker_info()
         worker_id = int(worker.id) if worker is not None else 0
-        seed = int(time.time()) + worker_id
+        if seed is None:
+            seed = int(time.time()) + worker_id
         np.random.seed(seed)
-        random.seed(seed)
 
     def init_position(self):
         self.mutex.acquire()
@@ -67,7 +66,7 @@ class StreamDataset(IterableDataset):
         Note: Here the scheduling of iterable is done at the beginning.
         Instead User can change this code to map lazily iterables.
         """
-        self._set_seed()
+        self._set_seed(0)
 
         #initialization this should be done in worker_init_fn
         worker = torch.utils.data.get_worker_info()
@@ -90,18 +89,9 @@ class StreamDataset(IterableDataset):
         EDIT 9/7/2021: The position in the stream is shared accross workers
         This allows us to avoid the non ideal pre-iteration splitting of the dataset
         """
-        def increment_pos():
-            self.mutex.acquire()
-            pos = self.pos.value
-            stream = self.stream_list[pos%len(self.stream_list)]
-            new_pos = pos + 1
-            self.pos.value = new_pos
-            self.mutex.release()
-            return stream
-
         iterators = []
         for i in range(split_size):
-            stream = increment_pos()
+            stream = self.increment_pos()
             stream = iter(self.streamer(stream))
             iterators.append(stream)
 
@@ -114,26 +104,62 @@ class StreamDataset(IterableDataset):
         while self.num_actives.value:
             values = []
             for i, it in enumerate(iterators):
-                done = False
-                while not done:
-                    try:
-                        if actives[i]:
-                            value = next(it)
-                            assert value is not None
-                        elif self.padding_mode == 'zeros':
-                            value = self.padding_value
-                        done = True
-                    except StopIteration:
-                        if actives[i] and (self.pos.value >= len(self.stream_list)):
-                            self.mutex.acquire()
-                            self.num_actives.value -= 1
-                            self.mutex.release()
-                        actives[i] = 1 * (self.pos.value < len(self.stream_list))
-                        if self.padding_mode == 'data' or actives[i]:
-                            assert stream is not None, self.pos.value
-                            stream = increment_pos()
-                            iterators[i] = iter(self.streamer(stream))
-                            it = iterators[i]
+                value = self.get_value_v0(iterators, i, actives)
                 values.append(value)
+            print('worker id: ', worker_id, ' => num values: ', len(values),
+            '/', len(iterators))
             yield tuple(values), worker_id
+
+    def get_value_v0(self, iterators, i, actives):
+        stream = iterators[i]
+        try:
+            value = next(iterators[i])
+            assert value is not None
+        except StopIteration:
+            if actives[i] and (self.pos.value >= len(self.stream_list)):
+                self.mutex.acquire()
+                self.num_actives.value -= 1
+                self.mutex.release()
+            actives[i] = 1 * (self.pos.value < len(self.stream_list))
+            if self.padding_mode == 'data' or actives[i]:
+                assert stream is not None, self.pos.value
+                stream = self.increment_pos()
+                iterators[i] = iter(self.streamer(stream))
+                value = next(iterators[i])
+            else:
+                value = self.padding_value
+        return value
+
+    def get_value(self, iterators, i, actives):
+        stream = iterators[i]
+        done = False
+        while not done:
+            try:
+                if actives[i]:
+                    value = next(iterators[i])
+                    assert value is not None
+                elif self.padding_mode == 'zeros':
+                    value = self.padding_value
+                done = True
+            except StopIteration:
+                if actives[i] and (self.pos.value >= len(self.stream_list)):
+                    self.mutex.acquire()
+                    self.num_actives.value -= 1
+                    self.mutex.release()
+                actives[i] = 1 * (self.pos.value < len(self.stream_list))
+                if self.padding_mode == 'data' or actives[i]:
+                    assert stream is not None, self.pos.value
+                    stream = self.increment_pos()
+                    iterators[i] = iter(self.streamer(stream))
+        return value
+
+    def increment_pos(self):
+        self.mutex.acquire()
+        pos = self.pos.value
+        stream = self.stream_list[pos%len(self.stream_list)]
+        new_pos = pos + 1
+        self.pos.value = new_pos
+        self.mutex.release()
+        return stream
+
 
