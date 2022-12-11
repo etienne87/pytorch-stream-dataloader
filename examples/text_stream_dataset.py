@@ -18,15 +18,14 @@ class TextStream(object):
         for i in range(0, len(self.text), self.tbins):
             data = self.text[i:i+self.tbins]
             #pad to tbins
-            frame = np.zeros((1, self.tbins), dtype=np.float32)
+            frame = np.zeros((1, self.tbins), dtype=np.uint8)
             frame[0,:len(data)] = data
-            yield (torch.from_numpy(frame), 0)
+            yield torch.from_numpy(frame)
 
 
 
 def collate_fn(data_list):
-    texts, _ = zip(*data_list)
-    texts = torch.cat(texts)
+    texts = torch.cat(data_list)
     return texts
 
 

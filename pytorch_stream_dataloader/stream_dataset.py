@@ -131,7 +131,7 @@ class StreamDataset(IterableDataset):
         done = False
         while not done:
             try:
-                if actives[i]:
+                if actives[i] or self.padding_mode == 'data':
                     value = next(iterators[i])
                     assert value is not None
                 elif self.padding_mode == 'zeros':
