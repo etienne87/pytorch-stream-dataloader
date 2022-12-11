@@ -20,6 +20,25 @@ import os
 import pickle
 
 
+class DummyVideoStream(object):
+    def __init__(self, height, width, num_tbins):
+        self.__dict__.update(**locals())
+        self.num_frames = np.random.randint(1,10)*num_tbins
+
+    def __len__(self):
+        return self.num_frames
+
+    def __iter__(self):
+        num = self.num_frames
+        for i in range(0, num, self.num_tbins):
+            end = min(num, i+self.num_tbins)
+            if end-i <= 0:
+                raise StopIteration
+            frames = torch.randint(0,255,(self.num_tbins, 3, self.height,
+                self.width), dtype=torch.uint8)
+            yield frames
+
+
 class DecordVideoStream(object):
     def __init__(self, path, start_frame, end_frame, height, width, num_tbins):
         self.__dict__.update(**locals())
@@ -43,7 +62,7 @@ class DecordVideoStream(object):
             frames = self.reader.get_batch([j for j in range(i, end)]).asnumpy()
             frames = torch.from_numpy(frames)  # t,h,w,c
             frames = frames.permute(0, 3, 1, 2)  # t,c,h,w
-            yield frames, 0
+            yield frames
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -87,14 +106,14 @@ class ScikitVideoStream(object):
             frames = np.concatenate(frames)  # t,h,w,c
             frames = torch.from_numpy(frames)
             frames = frames.permute(0, 3, 1, 2)  # t,c,h,w
-            yield frames, 0
+            yield frames
 
 
 def pad_collate_fn(data_list):
     """
     Here we pad with last image/ timestamp to get a contiguous batch
     """
-    images, _ = zip(*data_list)
+    images = data_list
     max_len = max([item.shape[0] for item in images])
     b = len(images)
     _, c, h, w = images[0].shape
@@ -141,7 +160,11 @@ def cut_videos_load_rewrite(path, max_frames):
 
 class VideoLoader(StreamDataLoader):
     def __init__(self, path, batch_size, num_workers, max_frames=500, backend='scikit'):
-        files = cut_videos_load_rewrite(path, max_frames)
+        if path:
+            files = cut_videos_load_rewrite(path, max_frames)
+        else:
+            files = [(None,None,None) for i in range(100)] 
+            backend = 'dummy'
 
         def iterator_fun(args):
             file_path, start_frame, end_frame = args
@@ -149,6 +172,8 @@ class VideoLoader(StreamDataLoader):
                 return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
             elif backend == 'decord':
                 return DecordVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+            elif backend == 'dummy':
+                return DummyVideoStream(height=240, width=320, num_tbins=10)
             else:
                 raise Exception("backend is not supported")
 

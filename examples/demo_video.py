@@ -1,11 +1,15 @@
 """
-demos
+Video demo:
+    
+Launch it like this:
+    - python3 examples/demo_video.py video_folder 
+if you do not provide any folder it will create random data on the fly
 """
 import time
 import itertools
 import tqdm
 import cv2
-from examples.video_stream_dataset import VideoLoader as TorchVideoLoader
+from examples.video_stream_dataset import VideoLoader 
 from torchvision.utils import make_grid
 
 
@@ -18,8 +22,8 @@ def make_grid_base(batch):
     return make_grid(batch, nrows=nrows).detach().cpu().permute(1, 2, 0).numpy()
 
 
-def read_dataset(path, batch_size=4, num_workers=2, num_batches=400, viz=True):
-    dataloader = TorchVideoLoader(path, batch_size, num_workers)
+def read_dataset(path="", batch_size=4, num_workers=2, num_batches=400, viz=True):
+    dataloader = VideoLoader(path, batch_size, num_workers) 
     start = time.time()
     for batch in tqdm.tqdm(itertools.islice(dataloader, num_batches), total=num_batches):
         if viz:
@@ -35,4 +39,4 @@ def read_dataset(path, batch_size=4, num_workers=2, num_batches=400, viz=True):
 
 if __name__ == '__main__':
     import fire
-    fire.Fire()
+    fire.Fire(read_dataset)
