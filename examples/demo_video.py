@@ -29,8 +29,9 @@ def read_dataset(path="", batch_size=4, num_workers=2, num_batches=400, viz=True
         if viz:
             for t in range(len(batch)):
                 img = make_grid_base(batch[t])
-                cv2.imshow('img', img[..., ::-1])
-                cv2.waitKey(5)
+                print(img.shape)
+                # cv2.imshow('img', img[..., ::-1])
+                # cv2.waitKey(5)
         else:
             time.sleep(0.1)
     end = time.time()
