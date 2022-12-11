@@ -108,25 +108,6 @@ class StreamDataset(IterableDataset):
                 values.append(value)
             yield tuple(values), worker_id
 
-    def get_value_v0(self, iterators, i, actives):
-        stream = iterators[i]
-        try:
-            value = next(iterators[i])
-            assert value is not None
-        except StopIteration:
-            self.mutex.acquire()
-            if actives[i] and (self.pos.value >= len(self.stream_list)):
-                self.num_actives.value -= 1
-            actives[i] = 1 * (self.pos.value < len(self.stream_list))
-            self.mutex.release()
-            if self.padding_mode == 'zeros' and not actives[i]:
-                value = self.padding_value
-            else:
-                stream = self.increment_pos()
-                iterators[i] = iter(self.streamer(stream))
-                value = next(iterators[i])
-        return value
-
     def get_value(self, iterators, i, actives):
         done = False
         while not done:
@@ -150,13 +131,9 @@ class StreamDataset(IterableDataset):
         return value
 
     def increment_pos(self):
-        #worker = torch.utils.data.get_worker_info()
-        #worker_id = int(worker.id) if worker is not None else 0
-
         self.mutex.acquire()
         pos = self.pos.value
         stream = self.stream_list[pos%len(self.stream_list)]
-        #print(f'worker id: {worker_id}, selecting stream #{pos}')
         new_pos = pos + 1
         self.pos.value = new_pos
         self.mutex.release()

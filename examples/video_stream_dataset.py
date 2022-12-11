@@ -169,9 +169,11 @@ class VideoLoader(StreamDataLoader):
         def iterator_fun(args):
             file_path, start_frame, end_frame = args
             if backend == 'scikit':
-                return ScikitVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+                return ScikitVideoStream(file_path, start_frame, end_frame,
+                        height=240, width=360, num_tbins=10)
             elif backend == 'decord':
-                return DecordVideoStream(file_path, start_frame, end_frame, height=0, width=0, num_tbins=10)
+                return DecordVideoStream(file_path, start_frame, end_frame,
+                        height=240, width=360, num_tbins=10)
             elif backend == 'dummy':
                 return DummyVideoStream(height=240, width=320, num_tbins=10)
             else:

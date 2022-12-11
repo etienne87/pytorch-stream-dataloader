@@ -22,8 +22,9 @@ def make_grid_base(batch):
     return make_grid(batch, nrows=nrows).detach().cpu().permute(1, 2, 0).numpy()
 
 
-def read_dataset(path="", batch_size=4, num_workers=2, num_batches=400, viz=True):
-    dataloader = VideoLoader(path, batch_size, num_workers) 
+def read_dataset(path="", batch_size=4, num_workers=2, num_batches=400,
+        viz=True, backend='scikit'):
+    dataloader = VideoLoader(path, batch_size, num_workers, backend=backend) 
     start = time.time()
     for batch in tqdm.tqdm(itertools.islice(dataloader, num_batches), total=num_batches):
         if viz:
