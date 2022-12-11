@@ -1,5 +1,8 @@
 """
-Text demo
+Text demo:
+
+Launch it like this:
+    - python3 examples/demo_text.py
 """
 from examples.text_stream_dataset import TextLoader
 
