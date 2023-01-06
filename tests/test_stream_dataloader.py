@@ -5,14 +5,9 @@ import os
 import platform
 import numpy as np
 
-TEST = 1
 
 from pytorch_stream_dataloader.stream_dataloader import StreamDataLoader
-
-if TEST:
-    from pytorch_stream_dataloader.stream_dataset_v0 import StreamDataset
-else:
-    from pytorch_stream_dataloader.stream_dataset import StreamDataset
+from pytorch_stream_dataloader.stream_dataset import StreamDataset
 from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_sizes
 from collections import defaultdict
 
