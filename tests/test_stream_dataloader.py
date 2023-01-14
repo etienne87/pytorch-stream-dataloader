@@ -183,11 +183,11 @@ class TestClassMultiStreams(object):
             return DummyStream(stream_num, num_tbins, data=data)
         padding_value = ([0] * num_tbins, -1)
         dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size,
-                num_workers, collate_fn, 'zeros', padding_value)
+                num_workers, collate_fn, 'data', padding_value)
 
         # THEN
         for i, batch in enumerate(dataloader):
             continue
-        assert i == 0
+        assert i == 0, i
 
 
