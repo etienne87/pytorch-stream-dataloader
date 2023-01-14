@@ -174,7 +174,23 @@ class TestClassMultiStreams(object):
         # THEN
         self.assert_all(dl, stream_list, num_tbins, batch_size)
 
-    def test_single_stream_single_batch_size(self):
+    def test_single_stream_single_batch_size_data_mode(self):
+        # GIVEN
+        num_workers, num_streams, batch_size, num_tbins = 1, 1, 1, 3
+        stream_list = [(0,[1,2,3])]
+        def iterator_fun(tmp):
+            stream_num, data = tmp
+            return DummyStream(stream_num, num_tbins, data=data)
+        padding_value = ([0] * num_tbins, -1)
+        dataloader = StreamDataLoader(stream_list, iterator_fun, batch_size,
+                num_workers, collate_fn, 'data', padding_value)
+
+        # THEN
+        for i, batch in enumerate(dataloader):
+            continue
+        assert i == 0, i
+
+    def test_single_stream_single_batch_size_zeros_mode(self):
         # GIVEN
         num_workers, num_streams, batch_size, num_tbins = 1, 1, 1, 3
         stream_list = [(0,[1,2,3])]
@@ -188,6 +204,8 @@ class TestClassMultiStreams(object):
         # THEN
         for i, batch in enumerate(dataloader):
             continue
-        assert i == 0
+        assert i == 0, i
+
+
 
 

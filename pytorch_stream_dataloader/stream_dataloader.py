@@ -14,7 +14,7 @@ import torch
 import numpy as np
 import multiprocessing
 
-from pytorch_stream_dataloader.stream_dataset import StreamDataset
+from pytorch_stream_dataloader.stream_dataset import StreamDataset, StreamData 
 from itertools import chain, cycle
 from collections import deque
 from torch.utils.data import IterableDataset, DataLoader
@@ -67,7 +67,8 @@ class StreamDataLoader(object):
                 batch = chain.from_iterable(iter(batch))
                 # Check if batch is all padding_value, do not yield
                 batch = [item for item in batch]
-                all_pad = all([item == self.dataset.padding_value for item in batch])
+                all_pad = all([item.is_padding for item in batch])
+                batch = [item.data for item in batch]
                 if all_pad:
                     continue
                 batch = self.collate_fn(batch)
@@ -80,5 +81,5 @@ class StreamDataLoader(object):
                 continue
             while len(fifo):
                 item = fifo.pop()[0]
-                if item != self.dataset.padding_value:
+                if not item.is_padding:
                     assert 0, 'code is broken, cache contained real data'

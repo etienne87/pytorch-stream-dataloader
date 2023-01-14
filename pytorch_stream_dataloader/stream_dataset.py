@@ -16,6 +16,11 @@ from pytorch_stream_dataloader.utils import split_batch_size, split_dataset_size
 from pytorch_stream_dataloader.join_data_thread import JoinDataThread
 
 
+class StreamData:
+    def __init__(self, data, is_padding=True):
+        self.data = data
+        self.is_padding = is_padding
+
 
 class StreamDataset(IterableDataset):
     """Stream Dataset
@@ -33,7 +38,7 @@ class StreamDataset(IterableDataset):
         self.batch_size = batch_size
         self.streamer = streamer
         self.padding_mode = padding_mode
-        self.padding_value = padding_value
+        self.padding_value = StreamData(padding_value)
         assert padding_mode in ['zeros', 'data']
         if padding_mode == 'zeros':
             assert padding_value is not None
@@ -114,6 +119,7 @@ class StreamDataset(IterableDataset):
             try:
                 if actives[i] or self.padding_mode == 'data':
                     value = next(iterators[i])
+                    value = StreamData(value, not actives[i])
                     assert value is not None
                 elif self.padding_mode == 'zeros':
                     value = self.padding_value
